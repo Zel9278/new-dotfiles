@@ -1842,7 +1842,42 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
   node_version
   rust_version
   xmake_version
+  uv_version
+  pnpm_version
+  battery
+  time
+  context
 )
+
+function prompt_uv_version() {
+  (( $+commands[uv] )) || return
+
+  local dir=$PWD version
+  while [[ $dir != / ]]; do
+    [[ -f $dir/pyproject.toml || -f $dir/uv.lock || -d $dir/.venv ]] && break
+    dir=${dir:h}
+  done
+  [[ -f $dir/pyproject.toml || -f $dir/uv.lock || -d $dir/.venv ]] || return
+
+  version=$(uv --version 2>/dev/null | sed -n 's/^uv //p')
+  [[ -n $version ]] || return
+  p10k segment -f 255 -b 4 -t "uv $version"
+}
+
+function prompt_pnpm_version() {
+  (( $+commands[pnpm] )) || return
+
+  local dir=$PWD version
+  while [[ $dir != / ]]; do
+    [[ -f $dir/package.json ]] && break
+    dir=${dir:h}
+  done
+  [[ -f $dir/package.json ]] || return
+
+  version=$(pnpm --version 2>/dev/null)
+  [[ -n $version ]] || return
+  p10k segment -f 255 -b 2 -t "pnpm $version"
+}
 
 function prompt_xmake_version() {
   (( $+commands[xmake] )) || return
