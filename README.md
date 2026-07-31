@@ -17,6 +17,7 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 | `.zshrc.d/99-alias.zsh` | エイリアス(eza / fastfetch があればそちらを使用) |
 | `.zshrc.d/99-auto-cdls.zsh` | cd 後に自動で `ls` |
 | `.zshrc.d/99-p10k.zsh` | powerlevel10k 設定の読み込み |
+| `.zshrc.d/99-prompt-overrides.zsh` | 開発向け prompt 表示の整理(Node / Rust / Python環境など) |
 | `.zshrc.d/99-local.zsh` | `~/.zshrc.local` を読み込み(管理外のローカル設定用) |
 | `.gitconfig` | git のユーザー情報・エイリアス・便利設定 |
 | `.vimrc` | vim の最小限の見やすい設定 |
