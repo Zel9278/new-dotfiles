@@ -1831,3 +1831,15 @@ typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
 
 (( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
 'builtin' 'unset' 'p10k_config_opts'
+
+# Developer-focused right prompt. Keep this outside the generated function so
+# it is applied after the p10k configuration has been loaded.
+typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
+  status
+  command_execution_time
+  background_jobs
+  virtualenv
+  node_version
+  rust_version
+)
+(( $+functions[p10k] )) && p10k reload
