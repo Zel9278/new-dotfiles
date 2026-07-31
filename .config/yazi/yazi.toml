@@ -1,0 +1,23 @@
+# yazi configuration
+# https://yazi-rs.github.io/docs/configuration/yazi
+
+[opener]
+# 実行ファイルをターミナル内で直接実行する
+# (KDE Plasma 6 の KIO はターミナル経由の xdg-open でのプログラム起動を
+#  "For security reasons, launching executables is not allowed in this context."
+#  としてブロックするため、xdg-open を通さずに実行する)
+run = [
+  { run = "%s1", block = true, desc = "Run in terminal", for = "unix" },
+]
+
+[open]
+# prepend_rules: デフォルトルールを保持したまま先頭に追加
+prepend_rules = [
+  # 実行ファイル(PIE含む) → ターミナルで実行
+  # (MIME名はバージョンで異なる: x-pie-executable(旧) / pie-executable(新))
+  { mime = "application/{executable,pie-executable,x-pie-executable}", use = "run" },
+  # AppImage → ターミナルで実行
+  { mime = "application/vnd.appimage", use = "run" },
+  # シェルスクリプト → 実行 or $EDITORで編集 を選択
+  { mime = "text/x-shellscript", use = [ "run", "edit" ] },
+]

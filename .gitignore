@@ -1,0 +1,15 @@
+*.bak
+*.bak.*
+.DS_Store
+
+# Machine-local and secret configuration
+.zshrc.local
+.env
+.env.*
+!.env.example
+.direnv/
+
+# Editor / tool state
+.vscode/
+.idea/
+.zcompdump*

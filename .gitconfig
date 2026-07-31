@@ -1,0 +1,43 @@
+[user]
+	name = Zel9278
+	email = 43949163+Zel9278@users.noreply.github.com
+[core]
+	editor = nvim
+[init]
+	defaultBranch = main
+
+# ── エイリアス ──────────────────────────
+[alias]
+	st = status -sb
+	co = checkout
+	sw = switch
+	br = branch
+	ci = commit
+	df = diff
+	dc = diff --cached
+	unstage = restore --staged --
+	last = log -1 --stat
+	lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+# ── 便利設定 ────────────────────────────
+[push]
+	autoSetupRemote = true        # git push だけで -u origin <branch> 相当に
+[fetch]
+	prune = true                  # リモートで消えたブランチ参照を自動削除
+[pull]
+	rebase = false
+[merge]
+	conflictstyle = zdiff3        # コンフリクト表示を3-wayで見やすく
+[diff]
+	algorithm = histogram
+	colorMoved = zebra            # 移動した行を別色で表示
+[rerere]
+	enabled = true                # コンフリクト解消を記憶して再利用
+[column]
+	ui = auto                     # branch/tag一覧を列表示
+[branch]
+	sort = -committerdate         # git branch を最新コミット順に
+[tag]
+	sort = version:refname
+[help]
+	autocorrect = prompt          # タイポ時に正しいコマンドを提案
