@@ -89,6 +89,26 @@ alias t='tmux'
 alias ta='tmux attach'
 alias tk='tmux kill-server'
 
+# ssh host/history picker (fzf)
+sshf() {
+  (( $+commands[fzf] )) || {
+    print -u2 'sshf: fzf is required'
+    return 1
+  }
+
+  local target
+  target=$(
+    {
+      if [[ -r "$HOME/.ssh/config" ]]; then
+        awk '$1 == "Host" { for (i = 2; i <= NF; i++) if ($i !~ /^[*!?]/) print $i }' "$HOME/.ssh/config"
+      fi
+      fc -ln -r 1 | sed -nE 's/^[[:space:]]*ssh[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([^[:space:]]+).*$/\2/p'
+    } | sed '/^$/d' | sort -u | fzf --height 40% --reverse --border --prompt='ssh> '
+  ) || return
+
+  [[ -n "$target" ]] && command ssh "$target"
+}
+
 # quick edit
 alias vz='nvim ~/.zshrc'
 alias ve='nvim ~/.zshrc.d/00-env.zsh'
