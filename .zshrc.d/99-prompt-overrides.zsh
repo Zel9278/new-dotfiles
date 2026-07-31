@@ -10,6 +10,8 @@ _prompt_overrides_apply() {
     node_version            # shown only in Node projects
     rust_version            # shown only in Rust projects
   )
+
+  (( $+functions[p10k] )) && p10k reload
 }
 
 # zinit may load p10k after this file, so apply the override immediately before
