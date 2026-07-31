@@ -1856,7 +1856,8 @@ function prompt_xmake_version() {
 
   version=$(xmake --version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(\+[0-9]+)?' | head -n 1)
   [[ -n $version ]] || return
-  p10k segment -t "xmake $version"
+  version=${version%%+*}
+  p10k segment -f 255 -b 8 -t "xmake $version"
 }
 
 (( $+functions[p10k] )) && p10k reload
