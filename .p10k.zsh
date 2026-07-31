@@ -1841,5 +1841,22 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
   virtualenv
   node_version
   rust_version
+  xmake_version
 )
+
+function prompt_xmake_version() {
+  (( $+commands[xmake] )) || return
+
+  local dir=$PWD version
+  while [[ $dir != / ]]; do
+    [[ -f $dir/xmake.lua ]] && break
+    dir=${dir:h}
+  done
+  [[ -f $dir/xmake.lua ]] || return
+
+  version=$(xmake --version 2>/dev/null | head -n 1)
+  [[ -n $version ]] || return
+  p10k segment -t "${version#xmake }"
+}
+
 (( $+functions[p10k] )) && p10k reload
