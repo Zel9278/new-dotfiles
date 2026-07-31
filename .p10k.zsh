@@ -1854,9 +1854,9 @@ function prompt_xmake_version() {
   done
   [[ -f $dir/xmake.lua ]] || return
 
-  version=$(xmake --version 2>/dev/null | head -n 1)
+  version=$(xmake --version 2>/dev/null | sed -n '1s/^xmake[[:space:]]\+\([^,[:space:]]\+\).*/\1/p')
   [[ -n $version ]] || return
-  p10k segment -t "${version#xmake }"
+  p10k segment -t "xmake $version"
 }
 
 (( $+functions[p10k] )) && p10k reload
