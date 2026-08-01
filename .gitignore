@@ -13,3 +13,22 @@
 .vscode/
 .idea/
 .zcompdump*
+
+# Local terminal recordings
+*.cast
+
+# AI memory content and generated index are local by design.
+# Keep the structure, rules, and tools in Git, but never commit personal notes.
+ai-memory/.obsidian/
+ai-memory/MEMORY-INDEX.md
+ai-memory/user/*.md
+ai-memory/environments/*.md
+ai-memory/prefs/*.md
+ai-memory/projects/*.md
+ai-memory/reference/*.md
+ai-memory/trivia/*.md
+ai-memory/paths/*.md
+ai-memory/archive/**
+!ai-memory/archive/README.md
+ai-memory/anarchy/**
+!ai-memory/anarchy/README.md

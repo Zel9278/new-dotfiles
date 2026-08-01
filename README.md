@@ -17,7 +17,6 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 | `.zshrc.d/99-alias.zsh` | エイリアス(eza / fastfetch があればそちらを使用) |
 | `.zshrc.d/99-auto-cdls.zsh` | cd 後に自動で `ls` |
 | `.zshrc.d/99-p10k.zsh` | powerlevel10k 設定の読み込み |
-| `.zshrc.d/99-prompt-overrides.zsh` | 開発向け prompt 表示の整理(Node / Rust / Python環境など) |
 | `.zshrc.d/99-local.zsh` | `~/.zshrc.local` を読み込み(管理外のローカル設定用) |
 | `.gitconfig` | git のユーザー情報・エイリアス・便利設定 |
 | `.vimrc` | vim の最小限の見やすい設定 |
@@ -26,8 +25,17 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 | `.config/bat/config` | bat のテーマ設定 |
 | `.config/nvim/` | Neovim 設定([LazyVim](https://www.lazyvim.org/) ベース) |
 | `.config/yazi/yazi.toml` | yazi 設定(実行ファイルをターミナルで直接起動。KIOの "launching executables is not allowed" 回避) |
-| `install.sh` | `$HOME` にシンボリックリンクを張る(既存ファイルはバックアップ) |
+| `ai-memory/` | Codex と Claude で共有する分類型の作業コンテキスト・判断メモ |
+| `AGENTS.md` / `CLAUDE.md` | AI が `ai-memory/` を参照・更新するためのリポジトリ指示 |
+| `asciinema` | ターミナル操作の録画・再生・共有(alias: `arec` / `aplay` / `aupload` / `astream`) |
+| `install.sh` | `$HOME` と `~/.codex` / `~/.claude` にシンボリックリンクを張る(既存ファイルはバックアップ) |
 | `auto-install.sh` | 新規マシン用ブートストラップ(clone → install) |
+
+## AI Memory
+
+`ai-memory/AGENTS.md` を正本にして、メモをトピック・種類ごとのMarkdownに分けて管理する。
+索引の更新と検証は、Linux/macOSでは `ai-memory/tools/*.sh`、Windowsでは `ai-memory/tools/*.ps1` を使う。
+個人メモ、生成索引、Obsidian設定はGit管理外。`install.sh` はCodexとClaude Codeのグローバル入口だけを `~/.dotfiles` へリンクする。
 
 ## プラグイン(zinit 経由で自動インストール)
 
@@ -49,10 +57,23 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 | `push.autoSetupRemote` | `git push` だけで upstream 設定 |
 | `fetch.prune` / `rerere` | 消えたブランチ参照を掃除 / コンフリクト解消を記憶 |
 
+## asciinema のエイリアス
+
+`asciinema` がインストールされている場合だけ、次のエイリアスを有効にする。
+
+| コマンド | 内容 |
+|---|---|
+| `arec` | ターミナル録画(`asciinema rec`) |
+| `aplay` | 録画再生(`asciinema play`) |
+| `aupload` | 録画アップロード(`asciinema upload`) |
+| `astream` | ライブ配信(`asciinema stream`) |
+
+録画は `arec demo.cast` のように保存し、再生は `aplay demo.cast` で行う。録画ファイルはdotfilesへコミットしない。
+
 ## 依存ツール(任意・dnf)
 
 ```sh
-sudo dnf install -y fzf eza fastfetch bat neovim ripgrep fd-find yazi
+sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 ```
 
 - **fzf**: Ctrl+R で曖昧履歴検索、Ctrl+T でファイル挿入、Alt+C でディレクトリ移動
@@ -61,6 +82,7 @@ sudo dnf install -y fzf eza fastfetch bat neovim ripgrep fd-find yazi
 - **bat**: シンタックスハイライト付き cat
 - **neovim + ripgrep + fd-find**: LazyVim 本体と検索系ツール
 - **yazi**: ターミナルファイルマネージャ(マウス対応)。`y` で起動すると終了時のディレクトリに移動できる
+- **asciinema**: ターミナル操作の録画・再生・共有(`arec` / `aplay` / `aupload` / `astream`)
 
 ## yazi の主な操作
 
@@ -108,6 +130,15 @@ git clone <このリポジトリのURL> ~/.dotfiles
 exec zsh          # 初回起動時に zinit がプラグインを自動インストール
 p10k configure    # プロンプトの見た目を対話的に設定
 ```
+
+`install.sh` は通常のdotfilesに加えて、次のAIエージェント入口も作成する。
+
+```text
+~/.codex/AGENTS.md  -> ~/.dotfiles/AGENTS.md
+~/.claude/CLAUDE.md -> ~/.dotfiles/CLAUDE.md
+```
+
+既存の実ファイルは `.bak.<日時>` に退避する。Yuki InferenceなどCodexのユーザー固有設定は、dotfilesには含めず `~/.codex/config.toml` で管理する。
 
 ## Tips
 

@@ -89,6 +89,14 @@ alias t='tmux'
 alias ta='tmux attach'
 alias tk='tmux kill-server'
 
+# asciinema
+if (( $+commands[asciinema] )); then
+  alias arec='asciinema rec'
+  alias aplay='asciinema play'
+  alias aupload='asciinema upload'
+  alias astream='asciinema stream'
+fi
+
 # ssh host/history picker (fzf)
 sshf() {
   (( $+commands[fzf] )) || {
