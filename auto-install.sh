@@ -17,5 +17,16 @@ fi
 echo "==> Running install.sh ..."
 "$DOTPATH/install.sh"
 
+install_packages="n"
+if [[ -t 0 ]]; then
+  read -r -p "Install optional packages now? [y/N] " install_packages || install_packages="n"
+fi
+if [[ $install_packages =~ ^[Yy]$ ]]; then
+  echo "==> Running install-packages.sh ..."
+  "$DOTPATH/install-packages.sh"
+else
+  echo "==> Skipping optional packages. Run $DOTPATH/install-packages.sh later."
+fi
+
 echo
 echo "Done. Run \`exec zsh\` to start using the new shell."

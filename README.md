@@ -148,6 +148,8 @@ sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 bash <(curl -sL https://raw.githubusercontent.com/Zel9278/new-dotfiles/main/auto-install.sh)
 ```
 
+実行時に任意パッケージを導入するか確認する。後から導入する場合は `~/.dotfiles/install-packages.sh` を実行する。
+
 手動の場合:
 
 ```sh
