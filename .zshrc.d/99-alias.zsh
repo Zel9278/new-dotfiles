@@ -97,6 +97,16 @@ if (( $+commands[asciinema] )); then
   alias astream='asciinema stream'
 fi
 
+# nix and flakes
+if (( $+commands[nix] )); then
+  alias nx='nix run'
+  alias nsh='nix shell'
+  alias nxd='nix develop'
+  alias nxb='nix build'
+  alias nfu='nix flake update'
+  alias ngc='nix-collect-garbage -d'
+fi
+
 # ssh host/history picker (fzf)
 sshf() {
   (( $+commands[fzf] )) || {

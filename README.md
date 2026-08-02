@@ -70,7 +70,30 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 
 録画は `arec demo.cast` のように保存し、再生は `aplay demo.cast` で行う。録画ファイルはdotfilesへコミットしない。
 
-## 依存ツール(任意・dnf)
+## Nix のエイリアス
+
+`nix` がインストールされている場合だけ、次のエイリアスを有効にする。
+
+| コマンド | 内容 |
+|---|---|
+| `nx` | パッケージを実行(`nix run`) |
+| `nsh` | 一時的なパッケージ環境(`nix shell`) |
+| `nxd` | 開発シェル(`nix develop`) |
+| `nxb` | flakeをビルド(`nix build`) |
+| `nfu` | flakeの依存関係を更新(`nix flake update`) |
+| `ngc` | 古いNix世代を削除(`nix-collect-garbage -d`) |
+
+## 依存ツール(任意)
+
+このdotfilesが使うコマンドラインツールを、検出したパッケージマネージャーから導入できる。
+
+```sh
+~/.dotfiles/install-packages.sh
+```
+
+対応しているパッケージマネージャーは `dnf` (Fedora)、`apt-get` (Debian / Ubuntu)、`pacman` (Arch) 。Archで `paru` が無い場合は、AURから `paru` を導入するか確認してから進む。
+
+Fedoraで手動実行する場合:
 
 ```sh
 sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
@@ -83,6 +106,7 @@ sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 - **neovim + ripgrep + fd-find**: LazyVim 本体と検索系ツール
 - **yazi**: ターミナルファイルマネージャ(マウス対応)。`y` で起動すると終了時のディレクトリに移動できる
 - **asciinema**: ターミナル操作の録画・再生・共有(`arec` / `aplay` / `aupload` / `astream`)
+- **Nix**: パッケージ管理と再現可能な開発環境(`nx` / `nsh` / `nxd` / `nxb` / `nfu` / `ngc`)
 
 ## yazi の主な操作
 
