@@ -38,10 +38,11 @@ zinit light zsh-users/zsh-autosuggestions
 zinit ice wait silent lucid
 zinit light zdharma-continuum/fast-syntax-highlighting
 
-zinit ice wait silent lucid
+# These plugins provide widgets bound immediately by 60-keybinds.zsh.
+zinit ice silent lucid
 zinit light zdharma-continuum/history-search-multi-word
 
-zinit ice wait silent lucid
+zinit ice silent lucid
 zinit light zsh-users/zsh-history-substring-search
 
 # Theme
@@ -49,6 +50,6 @@ zinit ice depth=1
 zinit light romkatv/powerlevel10k
 
 # Key bindings for the plugins above
-bindkey "^R" history-search-multi-word
-bindkey "^[[A" history-substring-search-up
-bindkey "^[[B" history-substring-search-down
+(( $+widgets[history-search-multi-word] )) && bindkey "^R" history-search-multi-word
+(( $+widgets[history-substring-search-up] )) && bindkey "^[[A" history-substring-search-up
+(( $+widgets[history-substring-search-down] )) && bindkey "^[[B" history-substring-search-down
