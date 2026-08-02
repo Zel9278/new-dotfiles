@@ -4,7 +4,11 @@
 #   Alt+C  : fuzzy cd into directory
 
 if (( $+commands[fzf] )); then
-  source <(fzf --zsh)   # key bindings + completion
+  if fzf --zsh >/dev/null 2>&1; then
+    source <(fzf --zsh)   # key bindings + completion
+  elif [[ -f /usr/share/fzf/shell/key-bindings.zsh ]]; then
+    source /usr/share/fzf/shell/key-bindings.zsh
+  fi
 elif [[ -f /usr/share/fzf/shell/key-bindings.zsh ]]; then
   source /usr/share/fzf/shell/key-bindings.zsh
 fi
