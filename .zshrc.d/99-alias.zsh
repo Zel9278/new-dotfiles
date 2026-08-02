@@ -38,13 +38,30 @@ for i in {1..9}; do
   alias "awk${i}"="awk '{print \$${i}}'"
 done
 
-# package management (Fedora)
+# package management
 sudo=sudo
 type doas > /dev/null && sudo=doas
-alias u="${sudo} dnf update -y"
-alias i="${sudo} dnf install -y"
-alias p="${sudo} dnf erase -y"
-alias s="dnf search"
+if (( $+commands[dnf] )); then
+  alias u="${sudo} dnf update -y"
+  alias i="${sudo} dnf install -y"
+  alias p="${sudo} dnf remove -y"
+  alias s="dnf search"
+elif (( $+commands[apt-get] )); then
+  alias u="${sudo} apt-get update && ${sudo} apt-get upgrade -y"
+  alias i="${sudo} apt-get install -y"
+  alias p="${sudo} apt-get remove -y"
+  alias s="apt-cache search"
+elif (( $+commands[paru] )); then
+  alias u='paru -Syu'
+  alias i='paru -S --needed'
+  alias p='paru -Rns'
+  alias s='paru -Ss'
+elif (( $+commands[pacman] )); then
+  alias u="${sudo} pacman -Syu"
+  alias i="${sudo} pacman -S --needed"
+  alias p="${sudo} pacman -Rns"
+  alias s="${sudo} pacman -Ss"
+fi
 
 # docker
 type docker-compose > /dev/null && alias dc=docker-compose || alias dc='docker compose'
