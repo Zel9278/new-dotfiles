@@ -36,6 +36,36 @@ install_github_deb() {
   rm -f "$package_file"
 }
 
+install_latest_neovim() {
+  local architecture="$1"
+  local archive_name="nvim-linux-$architecture.tar.gz"
+  local directory_name="nvim-linux-$architecture"
+  local latest_version current_version download_url archive_file
+
+  command -v curl >/dev/null 2>&1 || return 1
+  command -v tar >/dev/null 2>&1 || return 1
+
+  latest_version="$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest |
+    sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n 1)" || return 1
+  current_version="$(nvim --version 2>/dev/null | sed -n 's/^NVIM v\([0-9.]*\).*/v\1/p' | head -n 1)"
+  if [[ -n $current_version && $current_version == "$latest_version" ]]; then
+    echo "==> Neovim $latest_version is already installed."
+    return 0
+  fi
+
+  download_url="https://github.com/neovim/neovim/releases/latest/download/$archive_name"
+  archive_file="$(mktemp --suffix=.tar.gz)"
+  echo "==> Downloading Neovim $latest_version..."
+  curl -fL "$download_url" -o "$archive_file" || {
+    rm -f "$archive_file"
+    return 1
+  }
+  mkdir -p "$HOME/.local/bin"
+  tar -xzf "$archive_file" -C "$HOME/.local"
+  ln -sfn "$HOME/.local/$directory_name/bin/nvim" "$HOME/.local/bin/nvim"
+  rm -f "$archive_file"
+}
+
 if command -v dnf >/dev/null 2>&1; then
   echo "==> Installing packages with dnf..."
   as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
@@ -47,7 +77,15 @@ elif command -v apt-get >/dev/null 2>&1; then
 
   for package in "${apt_packages[@]}"; do
     if apt-cache show "$package" >/dev/null 2>&1; then
-      available_apt_packages+=("$package")
+      if [[ $package == neovim ]]; then
+        case "$(dpkg --print-architecture)" in
+          amd64) install_latest_neovim x86_64 || available_apt_packages+=("$package") ;;
+          arm64) install_latest_neovim arm64 || available_apt_packages+=("$package") ;;
+          *) available_apt_packages+=("$package") ;;
+        esac
+      else
+        available_apt_packages+=("$package")
+      fi
     elif [[ $package == fastfetch || $package == yazi ]]; then
       case "$(dpkg --print-architecture)" in
         amd64)

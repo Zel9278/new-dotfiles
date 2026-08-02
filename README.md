@@ -93,7 +93,7 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 
 対応しているパッケージマネージャーは `dnf` (Fedora)、`apt-get` (Debian / Ubuntu)、`pacman` (Arch) 。Archで `paru` が無い場合は、AURから `paru` を導入するか確認してから進む。
 
-APTの標準リポジトリに無い `fastfetch` / `yazi` は、対応アーキテクチャなら公式GitHub Releasesの `.deb` をダウンロードして導入する。それ以外のパッケージは警告を表示してスキップする。
+APTではNeovimを公式GitHub Releasesの最新版として `~/.local/bin` に導入する。標準リポジトリに無い `fastfetch` / `yazi` も、対応アーキテクチャなら公式GitHub Releasesの `.deb` をダウンロードして導入する。それ以外のパッケージは警告を表示してスキップする。
 
 Fedoraで手動実行する場合:
 
