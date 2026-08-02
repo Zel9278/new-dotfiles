@@ -10,13 +10,72 @@ as_root() {
   fi
 }
 
+install_github_deb() {
+  local repository="$1"
+  local asset_name="$2"
+  local download_url
+  local package_file
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "Warning: curl is required to download $asset_name" >&2
+    return 1
+  fi
+
+  download_url="$(curl -fsSL "https://api.github.com/repos/$repository/releases/latest" |
+    sed -n 's/.*"browser_download_url": "\([^"]*\)".*/\1/p' |
+    grep "/$asset_name$" | head -n 1)"
+  if [[ -z $download_url ]]; then
+    echo "Warning: release asset not found: $repository/$asset_name" >&2
+    return 1
+  fi
+
+  package_file="$(mktemp --suffix=.deb)"
+  echo "==> Downloading $asset_name..."
+  curl -fL "$download_url" -o "$package_file"
+  as_root apt-get install -y "$package_file"
+  rm -f "$package_file"
+}
+
 if command -v dnf >/dev/null 2>&1; then
   echo "==> Installing packages with dnf..."
   as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 elif command -v apt-get >/dev/null 2>&1; then
   echo "==> Installing packages with apt..."
   as_root apt-get update
-  as_root apt-get install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
+  apt_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi)
+  available_apt_packages=()
+
+  for package in "${apt_packages[@]}"; do
+    if apt-cache show "$package" >/dev/null 2>&1; then
+      available_apt_packages+=("$package")
+    elif [[ $package == fastfetch || $package == yazi ]]; then
+      case "$(dpkg --print-architecture)" in
+        amd64)
+          if [[ $package == fastfetch ]]; then
+            install_github_deb fastfetch-cli/fastfetch fastfetch-linux-amd64.deb || true
+          else
+            install_github_deb sxyazi/yazi yazi-x86_64-unknown-linux-gnu.deb || true
+          fi
+          ;;
+        arm64)
+          if [[ $package == fastfetch ]]; then
+            install_github_deb fastfetch-cli/fastfetch fastfetch-linux-aarch64.deb || true
+          else
+            install_github_deb sxyazi/yazi yazi-aarch64-unknown-linux-gnu.deb || true
+          fi
+          ;;
+        *)
+          echo "Warning: no download is configured for $(dpkg --print-architecture): $package" >&2
+          ;;
+      esac
+    else
+      echo "Warning: apt package not found, skipping: $package" >&2
+    fi
+  done
+
+  if ((${#available_apt_packages[@]} > 0)); then
+    as_root apt-get install -y "${available_apt_packages[@]}"
+  fi
 elif command -v pacman >/dev/null 2>&1; then
   arch_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd yazi)
   package_command=(pacman)
