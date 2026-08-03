@@ -1,3 +1,7 @@
+@/home/ced/.dotfiles/ai-memory/AGENTS.md
+
+Before starting work, read and apply the canonical file referenced above. The file is the single source of truth for memory and response style.
+
 # AI Memory
 
 Codex、Claude Code、Cursor、ChatGPT などから読める、ツール非依存の共有メモリ。ここを正本とする。

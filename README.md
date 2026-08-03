@@ -159,11 +159,11 @@ exec zsh          # 初回起動時に zinit がプラグインを自動イン�
 p10k configure    # プロンプトの見た目を対話的に設定
 ```
 
-`install.sh` は通常のdotfilesに加えて、次のAIエージェント入口も作成する。
+`install.sh` は通常のdotfilesに加えて、次のAIエージェント入口も作成する。入口ファイルには、実際の `DOTPATH` に解決した `ai-memory/AGENTS.md` の canonical 参照が書き込まれる。
 
 ```text
-~/.codex/AGENTS.md  -> ~/.dotfiles/AGENTS.md
-~/.claude/CLAUDE.md -> ~/.dotfiles/CLAUDE.md
+~/.codex/AGENTS.md
+~/.claude/CLAUDE.md
 ```
 
 既存の実ファイルは `.bak.<日時>` に退避する。Yuki InferenceなどCodexのユーザー固有設定は、dotfilesには含めず `~/.codex/config.toml` で管理する。

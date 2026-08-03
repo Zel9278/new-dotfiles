@@ -1,3 +1,7 @@
+@/home/ced/.dotfiles/ai-memory/AGENTS.md
+
+Before starting work, read and apply the canonical file referenced above. The file is the single source of truth for memory and response style.
+
 # Claude Instructions
 
 ## AIエージェントの読み込み
