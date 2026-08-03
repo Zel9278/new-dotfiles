@@ -101,8 +101,11 @@ alias gf='git fetch -p --all'
 alias gpush='git push -u origin $(git branch --show-current)'
 alias gdc='git diff --compact-summary --diff-filter=d'
 upd() {
-  git -C "${DOTFILES:-$HOME/.dotfiles}" pull --ff-only &&
-    "${DOTFILES:-$HOME/.dotfiles}/install.sh"
+  local dotfiles="${DOTFILES:-$HOME/.dotfiles}"
+
+  git -C "$dotfiles" pull --ff-only &&
+    "$dotfiles/install.sh" &&
+    exec zsh
 }
 
 # tmux
