@@ -13,6 +13,12 @@ elif [[ -f /usr/share/fzf/shell/key-bindings.zsh ]]; then
   source /usr/share/fzf/shell/key-bindings.zsh
 fi
 
+# fzf's integration may load after history-search-multi-word. Make the
+# intended Ctrl-R binding explicit when the widget is available.
+if (( $+widgets[fzf-history-widget] )); then
+  bindkey '^R' fzf-history-widget
+fi
+
 export FZF_DEFAULT_OPTS='--height 40% --reverse --border'
 if (( $+commands[rg] )); then
   export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
