@@ -66,6 +66,38 @@ install_latest_neovim() {
   rm -f "$archive_file"
 }
 
+install_latest_fzf() {
+  local architecture="$1"
+  local latest_version download_url archive_file archive_name
+
+  command -v curl >/dev/null 2>&1 || return 1
+  command -v tar >/dev/null 2>&1 || return 1
+
+  latest_version="$(curl -fsSL https://api.github.com/repos/junegunn/fzf/releases/latest |
+    sed -n 's/.*"tag_name": "\([^\"]*\)".*/\1/p' | head -n 1)" || return 1
+  if [[ -z $latest_version ]]; then
+    return 1
+  fi
+
+  if [[ "v$(fzf --version 2>/dev/null | awk '{print $1}')" == "$latest_version" ]]; then
+    echo "==> fzf $latest_version is already installed."
+    return 0
+  fi
+
+  archive_name="fzf-${latest_version#v}-linux_${architecture}.tar.gz"
+  download_url="https://github.com/junegunn/fzf/releases/download/${latest_version}/${archive_name}"
+  archive_file="$(mktemp --suffix=.tar.gz)"
+  echo "==> Downloading fzf $latest_version..."
+  curl -fL "$download_url" -o "$archive_file" || {
+    rm -f "$archive_file"
+    return 1
+  }
+  mkdir -p "$HOME/.local/bin"
+  tar -xzf "$archive_file" -C "$HOME/.local/bin" fzf
+  rm -f "$archive_file"
+  chmod +x "$HOME/.local/bin/fzf"
+}
+
 if command -v dnf >/dev/null 2>&1; then
   echo "==> Installing packages with dnf..."
   as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
@@ -76,7 +108,13 @@ elif command -v apt-get >/dev/null 2>&1; then
   available_apt_packages=()
 
   for package in "${apt_packages[@]}"; do
-    if apt-cache show "$package" >/dev/null 2>&1; then
+    if [[ $package == fzf ]]; then
+      case "$(dpkg --print-architecture)" in
+        amd64) install_latest_fzf amd64 || available_apt_packages+=("$package") ;;
+        arm64) install_latest_fzf arm64 || available_apt_packages+=("$package") ;;
+        *) available_apt_packages+=("$package") ;;
+      esac
+    elif apt-cache show "$package" >/dev/null 2>&1; then
       if [[ $package == neovim ]]; then
         case "$(dpkg --print-architecture)" in
           amd64) install_latest_neovim x86_64 || available_apt_packages+=("$package") ;;
