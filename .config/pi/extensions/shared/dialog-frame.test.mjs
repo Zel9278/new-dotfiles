@@ -106,3 +106,14 @@ test("frameWidth は枠の実際の幅と一致する", async () => {
 		assert.equal(vw(out[0]), frameWidth(inner), `inner=${inner}`);
 	}
 });
+
+test("wrapWithPrefix は色付き prefix でも字下げ幅を保つ", async () => {
+	const { wrapWithPrefix } = await import("./dialog-frame.ts");
+	const colored = "\u001b[2m$ \u001b[0m";
+	const out = wrapWithPrefix(colored, "a".repeat(60), 30);
+	assert.ok(out.length > 1);
+	// 2 行目以降は prefix の表示幅ぶん字下げされる
+	assert.ok(out.slice(1).every((l) => l.startsWith("  ")));
+	assert.equal(new Set(out.map(vw)).size <= 2, true);
+	assert.ok(out.every((l) => vw(l) <= 30));
+});

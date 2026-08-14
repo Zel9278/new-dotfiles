@@ -137,10 +137,9 @@ export default function strictGuard(pi: ExtensionAPI) {
 		return ask(ctx, `bash:${command}`, {
 			title,
 			danger: hits.length > 0,
-			subject: shown
-				.split("\n")
-				.map((line, i) => (i === 0 ? `$ ${line}` : `  ${line}`))
-				.join("\n"),
+			// "$ " は prefix として渡す。文字列に埋めると折り返しの字下げが揃わない
+			subjectPrefix: "$ ",
+			subject: shown,
 			risks,
 		});
 	}
@@ -159,7 +158,8 @@ export default function strictGuard(pi: ExtensionAPI) {
 		return ask(ctx, `${tool}:${path}`, {
 			title: hit ? `保護パスへの${tool}` : label,
 			danger: hit !== undefined,
-			subject: `${tool}: ${path}`,
+			subjectPrefix: `${tool}: `,
+			subject: path,
 			risks: hit ? [`保護パスに一致: ${hit}`] : [],
 		});
 	}
@@ -176,7 +176,9 @@ export default function strictGuard(pi: ExtensionAPI) {
 		return ask(ctx, `web_fetch:${url}:${renderJs}`, {
 			title: renderJs ? "ブラウザレンダリング" : "web_fetch 実行の確認",
 			danger: renderJs,
-			subject: [`web_fetch ${renderJs ? "render_js=true" : "静的取得"}`, `URL: ${url}`].join("\n"),
+			note: `web_fetch ${renderJs ? "render_js=true" : "静的取得"}`,
+			subjectPrefix: "URL: ",
+			subject: url,
 			risks: renderJs ? ["Playwright で JavaScript を実行"] : [],
 		});
 	}

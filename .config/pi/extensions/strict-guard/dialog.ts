@@ -26,6 +26,10 @@ export interface GuardPrompt {
 	subject: string;
 	/** 検出したリスクのラベル。無ければ空 */
 	risks: string[];
+	/** 本文の前に付ける印。`$ ` など。折り返した行はこの幅で字下げされる */
+	subjectPrefix?: string;
+	/** 本文の上に置く補足。web_fetch の取得方法など */
+	note?: string;
 	/** 「このセッションでは常に許可」を出すか */
 	allowSession: boolean;
 }
@@ -64,13 +68,15 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 		return askViaSelect(ctx, prompt, choices);
 	}
 
+	const prefix = prompt.subjectPrefix ?? "";
 	const subjectLines = prompt.subject.split("\n");
 
 	// 箱の幅と枠の幅を一致させるため、開く前に内側幅を確定する
 	const inner = measureInnerWidth(
 		[
 			prompt.title,
-			...subjectLines,
+			...(prompt.note ? [prompt.note] : []),
+			...subjectLines.map((line) => `${prefix}${line}`),
 			...choices.map(plainItemText),
 			...(prompt.risks.length > 0 ? [`検出: ${prompt.risks.join(", ")}`] : []),
 		],
@@ -88,8 +94,12 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 				if (cache) return cache;
 
 				const body: string[] = [];
+				if (prompt.note) {
+					body.push(...wrapWithPrefix("", theme.fg("muted", prompt.note), inner));
+				}
 				for (const line of subjectLines) {
-					body.push(...wrapWithPrefix("", theme.fg("muted", line), inner));
+					// prefix を渡すと折り返した行がその幅で字下げされ、継続行だと分かる
+					body.push(...wrapWithPrefix(theme.fg("dim", prefix), theme.fg("text", line), inner));
 				}
 				if (prompt.risks.length > 0) {
 					body.push("");
@@ -169,7 +179,11 @@ async function askViaSelect(
 	prompt: GuardPrompt,
 	choices: GuardChoice[],
 ): Promise<GuardChoice> {
-	const body = [prompt.subject, prompt.risks.length > 0 ? `検出: ${prompt.risks.join(", ")}` : ""]
+	const body = [
+		prompt.note ?? "",
+		`${prompt.subjectPrefix ?? ""}${prompt.subject}`,
+		prompt.risks.length > 0 ? `検出: ${prompt.risks.join(", ")}` : "",
+	]
 		.filter(Boolean)
 		.join("\n\n");
 	const labels = choices.map((c) => CHOICE_TEXT[c].label);

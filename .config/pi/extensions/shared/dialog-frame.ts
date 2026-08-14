@@ -175,13 +175,13 @@ export function wrapWithPrefix(prefix: string, text: string, target: number): st
 }
 
 /**
- * 既存コンポーナントの出力を枠に入れる。
+ * 既存コンポーネントの出力を枠に入れる。
  *
- * SettingsList など pi-tui のコンポーナントは truncateToWidth で
+ * SettingsList など pi-tui のコンポーネントは truncateToWidth で
  * 上限を切るだけで、幅いっぱいまで埋めない。そのままオーバーレイに
  * 渡すと短い行の右側に背景の余白が残るので、ここで揃える。
  *
- * @param lines コンポーナントが innerWidth で render した行
+ * @param lines コンポーネントが innerWidth で render した行
  * @param options.dropTrailingHint 末尾の空行と英語ヒント行を落とす。
  *   SettingsList は "Enter/Space to change · Esc to cancel" を自前で付けるので、
  *   下枠に日本語のヒントを出す場合は重複する。
