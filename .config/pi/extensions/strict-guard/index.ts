@@ -16,7 +16,13 @@ import { type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import { frameComponent, frameWidth } from "../shared/dialog-frame.ts";
 import { type GuardConfig, type GuardLevel, loadConfig, saveConfig } from "./config.ts";
 import { askGuard, type GuardPrompt } from "./dialog.ts";
-import { detectCommandRisks, matchProtectedPath, type RiskHit } from "./rules.ts";
+import {
+	countRmTargets,
+	detectCommandRisks,
+	mainCommandName,
+	matchProtectedPath,
+	type RiskHit,
+} from "./rules.ts";
 
 /** 設定UIの枠内幅。項目名と値が収まる程度に固定する */
 const SETTINGS_INNER = 48;
@@ -108,14 +114,34 @@ export default function strictGuard(pi: ExtensionAPI) {
 		if (!needConfirm) return undefined;
 
 		const shown = config.showDetails ? command : truncate(command.split("\n")[0] ?? "", 80);
+
+		// 何のコマンドかをタイトルに出す。本文を読まなくても判断できるように
+		const name = mainCommandName(command);
+		const base = hits.length > 0 ? "危険なコマンド" : "コマンド実行の確認";
+		const title = name ? `${base}: ${name}` : base;
+
+		// rm なら削除対象の目安を添える。シェル展開前なので正確な件数ではない
+		const risks = riskLabels(hits);
+		if (name === "rm") {
+			const targets = countRmTargets(command);
+			if (targets.length > 0) {
+				const wildcard = targets.some((t) => /[*?[]/.test(t));
+				risks.push(
+					wildcard
+						? `対象: ${targets.length}件の指定 (展開で増える)`
+						: `対象: ${targets.length}件`,
+				);
+			}
+		}
+
 		return ask(ctx, `bash:${command}`, {
-			title: hits.length > 0 ? "危険なコマンド" : "コマンド実行の確認",
+			title,
 			danger: hits.length > 0,
 			subject: shown
 				.split("\n")
 				.map((line, i) => (i === 0 ? `$ ${line}` : `  ${line}`))
 				.join("\n"),
-			risks: riskLabels(hits),
+			risks,
 		});
 	}
 

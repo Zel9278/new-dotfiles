@@ -6,7 +6,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { type SelectItem, SelectList } from "@earendil-works/pi-tui";
+import { Key, matchesKey } from "@earendil-works/pi-tui";
 import {
 	type FrameColor,
 	frame,
@@ -33,15 +33,27 @@ export interface GuardPrompt {
 /** 下枠に出すキー操作の説明。幅計算と描画で同じ文字列を使う */
 const HINT = "↑↓ 選択 • enter 決定 • esc 拒否";
 
-const CHOICE_ITEMS: Record<GuardChoice, SelectItem> = {
-	allow: { value: "allow", label: "許可", description: "今回だけ実行する" },
-	allowSession: {
-		value: "allowSession",
-		label: "このセッションでは常に許可",
-		description: "同じ内容は次から確認しない",
-	},
-	deny: { value: "deny", label: "拒否", description: "実行せずモデルに理由を返す" },
+/**
+ * 選択肢の文面。
+ *
+ * SelectList は description をラベル列の幅に揃えて右に離して置くので、
+ * 一番長いラベルに引きずられて視線が飛ぶ。説明をラベルの直後に
+ * 寄せたいので、リストは自前で描く。
+ *
+ * SelectList の label に ANSI を混べる方法も試したが、内部の
+ * truncateToWidth が幅超過時に色を途切ってリセット列を露出させる。
+ */
+const CHOICE_TEXT: Record<GuardChoice, { label: string; note: string }> = {
+	allow: { label: "許可", note: "今回だけ" },
+	allowSession: { label: "このセッションでは常に許可", note: "次から確認しない" },
+	deny: { label: "拒否", note: "実行せず理由を返す" },
 };
+
+/** 幅計算用。色を付けない素の文字列 */
+function plainItemText(c: GuardChoice): string {
+	const { label, note } = CHOICE_TEXT[c];
+	return `  ${label}  ${note}`;
+}
 
 export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Promise<GuardChoice> {
 	const choices: GuardChoice[] = prompt.allowSession
@@ -53,14 +65,13 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 	}
 
 	const subjectLines = prompt.subject.split("\n");
-	const choiceItems = choices.map((c) => CHOICE_ITEMS[c]);
 
 	// 箱の幅と枠の幅を一致させるため、開く前に内側幅を確定する
 	const inner = measureInnerWidth(
 		[
 			prompt.title,
 			...subjectLines,
-			...choiceItems.map((i) => `  ${i.label}  ${i.description ?? ""}`),
+			...choices.map(plainItemText),
 			...(prompt.risks.length > 0 ? [`検出: ${prompt.risks.join(", ")}`] : []),
 		],
 		{ min: 40, max: 76, title: prompt.title, hint: HINT },
@@ -69,18 +80,7 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 	const result = await ctx.ui.custom<GuardChoice | null>(
 		(tui, theme, _kb, done) => {
 			const accent: FrameColor = prompt.danger ? "error" : "accent";
-			const items = choiceItems;
-
-			const list = new SelectList(items, items.length, {
-				selectedPrefix: (t) => theme.fg(accent, t),
-				selectedText: (t) => theme.fg(accent, t),
-				description: (t) => theme.fg("muted", t),
-				scrollInfo: (t) => theme.fg("dim", t),
-				noMatch: (t) => theme.fg("warning", t),
-			});
-			list.onSelect = (item) => done(item.value as GuardChoice);
-			list.onCancel = () => done("deny");
-
+			let cursor = 0;
 			let cache: string[] | undefined;
 
 			/** オーバーレイなので内容から幅を決め、全行を枠の内側幅に揃える */
@@ -102,8 +102,16 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 					);
 				}
 				body.push("");
-				// SelectList は自前で幅を使うので内側幅を渡す
-				body.push(...list.render(inner));
+				choices.forEach((choice, i) => {
+					const { label, note } = CHOICE_TEXT[choice];
+					const selected = i === cursor;
+					const marker = selected ? theme.fg(accent, "❯ ") : "  ";
+					const shown = selected ? theme.fg(accent, label) : label;
+					// 説明はラベルの直後に置く。幅が足りなければ折り返して字下げされる
+					body.push(
+						...wrapWithPrefix(marker, `${shown}  ${theme.fg("muted", note)}`, inner),
+					);
+				});
 
 				cache = frame(body, theme, {
 					innerWidth: inner,
@@ -118,10 +126,27 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 				render,
 				invalidate: () => {
 					cache = undefined;
-					list.invalidate();
 				},
 				handleInput: (data: string) => {
-					list.handleInput(data);
+					if (matchesKey(data, Key.up) || data === "k") {
+						cursor = (cursor - 1 + choices.length) % choices.length;
+					} else if (matchesKey(data, Key.down) || data === "j") {
+						cursor = (cursor + 1) % choices.length;
+					} else if (matchesKey(data, Key.enter)) {
+						done(choices[cursor] ?? "deny");
+						return;
+					} else if (matchesKey(data, Key.escape)) {
+						done("deny");
+						return;
+					} else {
+						// 数字キーで直接選ぶ
+						const n = Number.parseInt(data, 10);
+						if (Number.isInteger(n) && n >= 1 && n <= choices.length) {
+							done(choices[n - 1] ?? "deny");
+							return;
+						}
+						return;
+					}
 					cache = undefined;
 					tui.requestRender();
 				},
@@ -147,8 +172,8 @@ async function askViaSelect(
 	const body = [prompt.subject, prompt.risks.length > 0 ? `検出: ${prompt.risks.join(", ")}` : ""]
 		.filter(Boolean)
 		.join("\n\n");
-	const labels = choices.map((c) => CHOICE_ITEMS[c].label);
+	const labels = choices.map((c) => CHOICE_TEXT[c].label);
 	const picked = await ctx.ui.select(`${prompt.title}\n\n${body}\n\n実行する?`, labels);
-	const found = choices.find((c) => CHOICE_ITEMS[c].label === picked);
+	const found = choices.find((c) => CHOICE_TEXT[c].label === picked);
 	return found ?? "deny";
 }

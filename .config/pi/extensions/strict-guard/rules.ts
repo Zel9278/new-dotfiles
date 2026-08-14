@@ -9,8 +9,17 @@ export interface RiskHit {
 	category: "delete" | "git" | "general";
 }
 
-const DELETE_PATTERNS: Array<[RegExp, string]> = [
-	[/\brm\s+(-[a-z]*[rRf][a-z]*|--recursive|--force)/i, "rm の再帰/強制削除"],
+/**
+ * ルールの表示名。固定文字列か、マッチ結果から作る関数。
+ * 後者は実際に使われたフラグを見せるために使う。
+ */
+type RiskLabel = string | ((match: RegExpMatchArray) => string);
+
+const DELETE_PATTERNS: Array<[RegExp, RiskLabel]> = [
+	[
+		/\brm\s+((?:-[a-z]*[rRf][a-z]*|--recursive|--force|--)\s*)+/i,
+		(m) => `rm ${describeRmFlags(m[0])}`,
+	],
 	[/\brm\s+.*\*/, "rm でのワイルドカード削除"],
 	[/\bfind\b[^|;]*-delete\b/i, "find -delete"],
 	[/\bfind\b[^|;]*-exec\s+rm\b/i, "find -exec rm"],
@@ -21,7 +30,7 @@ const DELETE_PATTERNS: Array<[RegExp, string]> = [
 	[/\bdd\b[^|;]*\bof=/i, "dd の書き込み"],
 ];
 
-const GIT_PATTERNS: Array<[RegExp, string]> = [
+const GIT_PATTERNS: Array<[RegExp, RiskLabel]> = [
 	[/\bgit\s+push\b[^|;]*(--force|-f\b)/i, "git push --force"],
 	[/\bgit\s+reset\b[^|;]*--hard/i, "git reset --hard"],
 	[/\bgit\s+clean\b[^|;]*-[a-z]*f/i, "git clean -f"],
@@ -33,7 +42,7 @@ const GIT_PATTERNS: Array<[RegExp, string]> = [
 	[/\bgit\s+(restore|stash\s+drop|stash\s+clear)\b/i, "git による変更破棄"],
 ];
 
-const BROWSER_AUTOMATION_PATTERNS: Array<[RegExp, string]> = [
+const BROWSER_AUTOMATION_PATTERNS: Array<[RegExp, RiskLabel]> = [
 	[/\bplaywright\b/i, "Playwright ブラウザ自動化"],
 	[/\bpuppeteer\b/i, "Puppeteer ブラウザ自動化"],
 	[/\bselenium-webdriver\b/i, "Selenium ブラウザ自動化"],
@@ -42,7 +51,7 @@ const BROWSER_AUTOMATION_PATTERNS: Array<[RegExp, string]> = [
 	[/--disable-web-security/i, "Web セキュリティの無効化"],
 ];
 
-const GENERAL_PATTERNS: Array<[RegExp, string]> = [
+const GENERAL_PATTERNS: Array<[RegExp, RiskLabel]> = [
 	[/\bsudo\b/i, "sudo"],
 	[/\bdoas\b/i, "doas"],
 	[/\b(chmod|chown)\b[^|;]*(-R|--recursive)/i, "再帰的な権限変更"],
@@ -115,13 +124,90 @@ function stripTrailingOperands(command: string): string {
 		.join("");
 }
 
+/**
+ * コマンド列の先頭にある主コマンド名を拾う。タイトルに使う。
+ *
+ * env 代入と sudo / doas / コマンドランチャは跨いで、実際に走るものを返す。
+ *
+ * @example mainCommandName('sudo rm -rf /x && echo ok') → "rm"
+ */
+export function mainCommandName(command: string): string | undefined {
+	const first = command
+		.split(/\n|&&|\|\||[;|]/)[0]
+		?.trim()
+		.replace(/^[({]\s*/, "");
+	if (!first) return undefined;
+
+	// コマンド名の前に付くものを順に剥がす
+	const skip = /^(?:[A-Za-z_][A-Za-z0-9_]*=\S*|sudo|doas|env|command|time|nohup|exec|xargs)$/;
+	for (const token of first.split(/\s+/)) {
+		if (token.length === 0 || token.startsWith("-")) continue;
+		if (skip.test(token)) continue;
+		// パス付きなら末尾の要素だけを使う
+		return token.split("/").pop() || token;
+	}
+	return undefined;
+}
+
+/**
+ * rm の削除対象を数える。フラグとリダイレクトを除いた引数の件数。
+ *
+ * シェルの展開前なので、ワイルドカードは 1 件として数える。
+ * 実際に消える件数とは一致しないので、あくまで目安として使う。
+ */
+export function countRmTargets(command: string): string[] {
+	const segment = command.split(/\n|&&|\|\||[;|]/).find((s) => /\brm\b/.test(s));
+	if (!segment) return [];
+
+	const afterRm = segment.slice(segment.search(/\brm\b/) + 2);
+	const targets: string[] = [];
+	let optionsEnded = false;
+
+	// クォートごとに拾う。空白入りのパスを 1 件として数えるため
+	const tokens = afterRm.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+	for (const raw of tokens) {
+		if (raw === "--") {
+			optionsEnded = true;
+			continue;
+		}
+		if (!optionsEnded && raw.startsWith("-")) continue;
+		// リダイレクト先は削除対象でない
+		if (/^[<>]/.test(raw)) break;
+		targets.push(raw.replace(/^["']|["']$/g, ""));
+	}
+	return targets;
+}
+
+/**
+ * rm のフラグ部分から、何が危ないのかを日本語で返す。
+ * 実際に使われたフラグをそのまま添える。
+ *
+ * @example describeRmFlags("rm -rf ") → "-rf (再帰・強制)"
+ */
+function describeRmFlags(matched: string): string {
+	// "rm" と空白を落としてフラグだけにする
+	const flags = matched
+		.replace(/^\s*rm\s+/i, "")
+		.trim()
+		.replace(/\s+/g, " ");
+
+	const recursive = /(^|\s)-[a-z]*[rR]|--recursive/.test(flags);
+	const force = /(^|\s)-[a-z]*f|--force/.test(flags);
+
+	const kinds = [recursive ? "再帰" : "", force ? "強制" : ""].filter(Boolean);
+	const suffix = kinds.length > 0 ? ` (${kinds.join("・")})` : "";
+	return `${flags}${suffix}`;
+}
+
 /** コマンド文字列からリスクを列挙する */
 export function detectCommandRisks(command: string): RiskHit[] {
 	const target = normalizeCommandForMatching(command);
 	const hits: RiskHit[] = [];
-	const push = (patterns: Array<[RegExp, string]>, category: RiskHit["category"]) => {
+	const push = (patterns: Array<[RegExp, RiskLabel]>, category: RiskHit["category"]) => {
 		for (const [pattern, label] of patterns) {
-			if (pattern.test(target)) hits.push({ label, category });
+			const match = target.match(pattern);
+			if (!match) continue;
+			hits.push({ label: typeof label === "function" ? label(match) : label, category });
 		}
 	};
 	push(BROWSER_AUTOMATION_PATTERNS, "general");
