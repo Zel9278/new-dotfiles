@@ -41,3 +41,7 @@ ai-memory/scratch/**
 .pi/agent/models-store.json
 .pi/agent/trust.json
 .pi/agent/sessions/
+
+# Extension dependencies are installed by install.sh, not committed.
+.config/pi/extensions/*/node_modules/
+.config/pi/extensions/*/package-lock.json

@@ -28,6 +28,15 @@ pi_entries=(
   models.json
 )
 
+# pi extensions. Each is a directory with index.ts, auto-discovered by pi from
+# ~/.pi/agent/extensions/*/index.ts.
+pi_extensions=(
+  strict-guard
+  mcp-client
+  ask
+  footer
+)
+
 link_entry() {
   local src="$1"
   local dst="$2"
@@ -97,8 +106,25 @@ for f in "${pi_entries[@]}"; do
   link_entry "$DOTPATH/.config/pi/$f" "$HOME/.pi/agent/$f"
 done
 
+# pi extensions. Dependencies live in each extension's package.json and are
+# installed in place, so they must not be committed (see .gitignore).
+for d in "${pi_extensions[@]}"; do
+  src="$DOTPATH/.config/pi/extensions/$d"
+  link_entry "$src" "$HOME/.pi/agent/extensions/$d"
+
+  if [[ -f "$src/package.json" ]]; then
+    if command -v npm >/dev/null 2>&1; then
+      echo "npm install: $d"
+      (cd "$src" && npm install --silent)
+    else
+      echo "warning: npm not found; skipping deps for pi extension $d" >&2
+    fi
+  fi
+done
+
 echo "Done. Run \`exec zsh\` to start using the new config."
 echo "On first launch zinit will install plugins automatically, then run \`p10k configure\`."
 echo "Codex, Claude Code, and pi entry points are installed from $DOTPATH."
 echo "pi provider keys are read from the environment (see .config/pi/models.json)."
+echo "pi extensions installed: ${pi_extensions[*]}"
 echo "Optional packages: run $DOTPATH/install-packages.sh"
