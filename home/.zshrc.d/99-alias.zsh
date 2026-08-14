@@ -100,12 +100,40 @@ alias ccl='cargo clippy'
 alias gf='git fetch -p --all'
 alias gpush='git push -u origin $(git branch --show-current)'
 alias gdc='git diff --compact-summary --diff-filter=d'
+# 各種インストーラ(pnpm 等)が .zshrc 末尾へ書き込む定型ブロックを剥がしてから
+# pull する。剥がしきれない差分は --autostash に任せ、競合したら中断する。
 upd() {
   local dotfiles="${DOTFILES:-$HOME/.dotfiles}"
+  local zshrc="$dotfiles/home/.zshrc"
 
-  git -C "$dotfiles" pull --ff-only &&
-    "$dotfiles/install.sh" &&
-    exec zsh
+  # 1) 既知の追記ブロックを除去 (PNPM_HOME 等は 00-env.zsh で管理済み)
+  if [[ -f $zshrc ]] && ! git -C "$dotfiles" diff --quiet -- home/.zshrc; then
+    local cleaned="${zshrc}.upd.$$"
+    if perl -0777 -pe \
+      's/\n*^# (pnpm|bun|deno|fnm|nvm|rustup|cargo)\b.*?^# \1 end\n//gms; s/\n*\z/\n/' \
+      "$zshrc" > "$cleaned" 2>/dev/null; then
+      if cmp -s "$zshrc" "$cleaned"; then
+        rm -f "$cleaned"
+      else
+        cat "$cleaned" > "$zshrc" && rm -f "$cleaned"
+        echo "\e[33mupd: .zshrc の追記ブロックを除去しました\e[0m"
+      fi
+    else
+      rm -f "$cleaned"
+    fi
+  fi
+
+  # 2) 残った差分は autostash 経由で退避しつつ pull
+  git -C "$dotfiles" pull --ff-only --autostash || return
+
+  # 3) autostash 復元が競合していたら install.sh へ進まない
+  if [[ -n $(git -C "$dotfiles" ls-files --unmerged) ]]; then
+    echo "\e[31;1mupd: autostash の復元が競合しました\e[0m"
+    echo "解決後に 'git -C $dotfiles stash drop' を実行してください"
+    return 1
+  fi
+
+  "$dotfiles/install.sh" && exec zsh
 }
 
 # tmux
