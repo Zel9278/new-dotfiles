@@ -108,6 +108,14 @@ done
 
 # pi extensions. Dependencies live in each extension's package.json and are
 # installed in place, so they must not be committed (see .gitignore).
+#
+# shared/ holds helpers imported by several extensions via "../shared/...".
+# The loader resolves those relative paths under ~/.pi/agent/extensions, so it
+# needs its own symlink. It is deliberately kept out of pi_extensions: pi only
+# loads the directories listed there, and shared/ exports no extension entry
+# point.
+link_entry "$DOTPATH/.config/pi/extensions/shared" "$HOME/.pi/agent/extensions/shared"
+
 for d in "${pi_extensions[@]}"; do
   src="$DOTPATH/.config/pi/extensions/$d"
   link_entry "$src" "$HOME/.pi/agent/extensions/$d"

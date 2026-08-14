@@ -12,10 +12,15 @@
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getSettingsListTheme, isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
+import { type SettingItem, SettingsList } from "@earendil-works/pi-tui";
+import { frameComponent, frameWidth } from "../shared/dialog-frame.ts";
 import { type GuardConfig, type GuardLevel, loadConfig, saveConfig } from "./config.ts";
 import { askGuard, type GuardPrompt } from "./dialog.ts";
 import { detectCommandRisks, matchProtectedPath, type RiskHit } from "./rules.ts";
+
+/** 設定UIの枠内幅。項目名と値が収まる程度に固定する */
+const SETTINGS_INNER = 48;
+const SETTINGS_HINT = "←→ 切替 (off/risky/always) • esc 閉じる";
 
 const LEVELS: GuardLevel[] = ["off", "risky", "always"];
 
@@ -235,12 +240,6 @@ function registerGuardCommand(
 					},
 				];
 
-				const container = new Container();
-				container.addChild(new Text(theme.fg("accent", theme.bold("Strict Guard")), 1, 0));
-				container.addChild(
-					new Text(theme.fg("dim", "←→ で変更, Esc で閉じる  (off / risky / always)"), 0, 1),
-				);
-
 				const list = new SettingsList(
 					items,
 					Math.min(items.length + 2, 15),
@@ -251,16 +250,29 @@ function registerGuardCommand(
 					},
 					() => done(undefined),
 				);
-				container.addChild(list);
 
 				return {
-					render: (width: number) => container.render(width),
-					invalidate: () => container.invalidate(),
+					// SettingsList は幅いっぱいまで埋めないので、枠に入れて幅を揃える
+					render: () => frameComponent(list.render(SETTINGS_INNER), theme, {
+						innerWidth: SETTINGS_INNER,
+						color: "accent",
+						title: "Strict Guard",
+						hint: SETTINGS_HINT,
+						dropTrailingHint: true,
+					}),
+					invalidate: () => list.invalidate(),
 					handleInput: (data: string) => {
 						list.handleInput?.(data);
 						tui.requestRender();
 					},
 				};
+			}, {
+				overlay: true,
+				overlayOptions: {
+					anchor: "center",
+					width: frameWidth(SETTINGS_INNER),
+					margin: 2,
+				},
 			});
 		},
 	});

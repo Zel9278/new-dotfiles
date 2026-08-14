@@ -6,7 +6,8 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, Text, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { Key, matchesKey, Text } from "@earendil-works/pi-tui";
+import { frame, frameWidth, measureInnerWidth, wrapWithPrefix } from "../shared/dialog-frame.ts";
 import { Type } from "typebox";
 import { OptionSchema } from "./schema.ts";
 
@@ -15,6 +16,9 @@ export interface AskMultiDetails {
 	options: string[];
 	selected: string[] | null;
 }
+
+/** 下枠に出すキー操作の説明。幅計算と描画で同じ文字列を使う */
+const HINT = "space 選択 • a 全切替 • enter 確定 • esc 中止";
 
 const AskMultiParams = Type.Object({
 	question: Type.String({ description: "The question to ask the user" }),
@@ -43,6 +47,18 @@ export function registerAskMulti(pi: ExtensionAPI) {
 					details: { question: params.question, options: labels, selected: null } as AskMultiDetails,
 				};
 			}
+
+			// 幅は開いている間固定する。タイトルの件数表示は桁数が変わるので、
+			// いちばん長くなる (n/n) の形で測っておく。
+			const total = params.options.length;
+			const inner = measureInnerWidth(
+				[
+					params.question,
+					...params.options.map((o) => `  ◉ ${o.label}`),
+					...params.options.map((o) => (o.description ? `      ${o.description}` : "")),
+				],
+				{ min: 34, max: 72, title: `複数選択 (${total}/${total})`, hint: HINT },
+			);
 
 			const result = await ctx.ui.custom<string[] | null>((tui, theme, _kb, done) => {
 				let cursor = 0;
@@ -86,48 +102,38 @@ export function registerAskMulti(pi: ExtensionAPI) {
 					}
 				}
 
-				function render(width: number): string[] {
+				function render(_width: number): string[] {
 					if (cache) return cache;
-					const w = Math.max(1, width);
-					const lines: string[] = [];
 
-					const addWithPrefix = (prefix: string, text: string) => {
-						const pw = visibleWidth(prefix);
-						if (pw >= w) {
-							lines.push(...wrapTextWithAnsi(prefix + text, w));
-							return;
-						}
-						const wrapped = wrapTextWithAnsi(text, w - pw);
-						const cont = " ".repeat(pw);
-						wrapped.forEach((line, i) => lines.push(`${i === 0 ? prefix : cont}${line}`));
-					};
-
-					lines.push(theme.fg("accent", "─".repeat(w)));
-					addWithPrefix(" ", theme.fg("text", theme.bold(params.question)));
-					lines.push("");
+					const body: string[] = [];
+					body.push(...wrapWithPrefix("", theme.fg("text", theme.bold(params.question)), inner));
+					body.push("");
 
 					params.options.forEach((opt, i) => {
 						const selected = i === cursor;
-						const marker = selected ? theme.fg("accent", "> ") : "  ";
-						const box = checked.has(i) ? theme.fg("success", "[x] ") : theme.fg("dim", "[ ] ");
-						addWithPrefix(marker + box, theme.fg(selected ? "accent" : "text", opt.label));
+						const marker = selected ? theme.fg("accent", "❯ ") : "  ";
+						const box = checked.has(i) ? theme.fg("success", "◉ ") : theme.fg("dim", "○ ");
+						body.push(
+							...wrapWithPrefix(marker + box, theme.fg(selected ? "accent" : "text", opt.label), inner),
+						);
 						if (opt.description) {
-							addWithPrefix("       ", theme.fg("muted", opt.description));
+							body.push(...wrapWithPrefix("      ", theme.fg("muted", opt.description), inner));
 						}
 					});
 
-					lines.push("");
-					addWithPrefix(
-						" ",
-						theme.fg("dim", `↑↓ 移動 • space 選択 • a 全切替 • enter 確定 (${checked.size}件) • esc 中止`),
-					);
-					lines.push(theme.fg("accent", "─".repeat(w)));
-
-					cache = lines;
-					return lines;
+					cache = frame(body, theme, {
+						innerWidth: inner,
+						color: "accent",
+						title: `複数選択 (${checked.size}/${params.options.length})`,
+						hint: HINT,
+					});
+					return cache;
 				}
 
 				return { render, invalidate: () => { cache = undefined; }, handleInput };
+			}, {
+				overlay: true,
+				overlayOptions: { anchor: "center", width: frameWidth(inner), margin: 2 },
 			});
 
 			if (result === null) {

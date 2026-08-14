@@ -12,12 +12,17 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
+import { type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { frameComponent, frameWidth } from "../shared/dialog-frame.ts";
 import { type FooterConfig, loadConfig, saveConfig } from "./config.ts";
 import { GitDirtyWatcher } from "./git-status.ts";
 import { type PowerlineCell, type PowerlineTheme, renderPowerline } from "./powerline.ts";
 import { buildCells } from "./segments.ts";
+
+/** 設定UIの枠内幅。項目名と値が収まる程度に固定する */
+const SETTINGS_INNER = 46;
+const SETTINGS_HINT = "↑↓ 移動 • ←→ 切替 • esc 閉じる";
 
 export default function footer(pi: ExtensionAPI) {
 	let config = loadConfig();
@@ -189,10 +194,6 @@ function registerFooterCommand(
 					toggle("mcp", "MCP の接続状態"),
 				];
 
-				const container = new Container();
-				container.addChild(new Text(theme.fg("accent", theme.bold("Footer")), 1, 1));
-				container.addChild(new Text(theme.fg("dim", "←→ で切替, Esc で閉じる"), 1, 1));
-
 				const list = new SettingsList(
 					items,
 					Math.min(items.length + 2, 15),
@@ -205,16 +206,29 @@ function registerFooterCommand(
 					},
 					() => done(undefined),
 				);
-				container.addChild(list);
 
 				return {
-					render: (w: number) => container.render(w),
-					invalidate: () => container.invalidate(),
+					// SettingsList は幅いっぱいまで埋めないので、枠に入れて幅を揃える
+					render: () => frameComponent(list.render(SETTINGS_INNER), theme, {
+						innerWidth: SETTINGS_INNER,
+						color: "accent",
+						title: "Footer",
+						hint: SETTINGS_HINT,
+						dropTrailingHint: true,
+					}),
+					invalidate: () => list.invalidate(),
 					handleInput: (data: string) => {
 						list.handleInput?.(data);
 						tui.requestRender();
 					},
 				};
+			}, {
+				overlay: true,
+				overlayOptions: {
+					anchor: "center",
+					width: frameWidth(SETTINGS_INNER),
+					margin: 2,
+				},
 			});
 		},
 	});

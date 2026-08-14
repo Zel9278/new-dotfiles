@@ -6,8 +6,14 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { DynamicBorder } from "@earendil-works/pi-coding-agent";
-import { Container, type SelectItem, SelectList, Text } from "@earendil-works/pi-tui";
+import { type SelectItem, SelectList } from "@earendil-works/pi-tui";
+import {
+	type FrameColor,
+	frame,
+	frameWidth,
+	measureInnerWidth,
+	wrapWithPrefix,
+} from "../shared/dialog-frame.ts";
 
 export type GuardChoice = "allow" | "allowSession" | "deny";
 
@@ -23,6 +29,9 @@ export interface GuardPrompt {
 	/** 「このセッションでは常に許可」を出すか */
 	allowSession: boolean;
 }
+
+/** 下枠に出すキー操作の説明。幅計算と描画で同じ文字列を使う */
+const HINT = "↑↓ 選択 • enter 決定 • esc 拒否";
 
 const CHOICE_ITEMS: Record<GuardChoice, SelectItem> = {
 	allow: { value: "allow", label: "許可", description: "今回だけ実行する" },
@@ -43,49 +52,88 @@ export async function askGuard(ctx: ExtensionContext, prompt: GuardPrompt): Prom
 		return askViaSelect(ctx, prompt, choices);
 	}
 
-	const result = await ctx.ui.custom<GuardChoice | null>((tui, theme, _kb, done) => {
-		const container = new Container();
-		const accent = prompt.danger ? "error" : "accent";
-		const frame = (s: string) => theme.fg(accent, s);
+	const subjectLines = prompt.subject.split("\n");
+	const choiceItems = choices.map((c) => CHOICE_ITEMS[c]);
 
-		container.addChild(new DynamicBorder(frame));
-		container.addChild(new Text(theme.fg(accent, theme.bold(prompt.title)), 1, 1));
+	// 箱の幅と枠の幅を一致させるため、開く前に内側幅を確定する
+	const inner = measureInnerWidth(
+		[
+			prompt.title,
+			...subjectLines,
+			...choiceItems.map((i) => `  ${i.label}  ${i.description ?? ""}`),
+			...(prompt.risks.length > 0 ? [`検出: ${prompt.risks.join(", ")}`] : []),
+		],
+		{ min: 40, max: 76, title: prompt.title, hint: HINT },
+	);
 
-		const subjectLines = prompt.subject.split("\n");
-		subjectLines.forEach((line, i) => {
-			// 最後の行だけ下に隔を入れる
-			const padY = i === subjectLines.length - 1 && prompt.risks.length === 0 ? 1 : 0;
-			container.addChild(new Text(theme.fg("muted", line), 1, padY));
-		});
+	const result = await ctx.ui.custom<GuardChoice | null>(
+		(tui, theme, _kb, done) => {
+			const accent: FrameColor = prompt.danger ? "error" : "accent";
+			const items = choiceItems;
 
-		if (prompt.risks.length > 0) {
-			container.addChild(new Text(theme.fg("warning", `検出: ${prompt.risks.join(", ")}`), 1, 1));
-		}
+			const list = new SelectList(items, items.length, {
+				selectedPrefix: (t) => theme.fg(accent, t),
+				selectedText: (t) => theme.fg(accent, t),
+				description: (t) => theme.fg("muted", t),
+				scrollInfo: (t) => theme.fg("dim", t),
+				noMatch: (t) => theme.fg("warning", t),
+			});
+			list.onSelect = (item) => done(item.value as GuardChoice);
+			list.onCancel = () => done("deny");
 
-		const items = choices.map((c) => CHOICE_ITEMS[c]);
-		const list = new SelectList(items, items.length, {
-			selectedPrefix: (t) => theme.fg(accent, t),
-			selectedText: (t) => theme.fg(accent, t),
-			description: (t) => theme.fg("muted", t),
-			scrollInfo: (t) => theme.fg("dim", t),
-			noMatch: (t) => theme.fg("warning", t),
-		});
-		list.onSelect = (item) => done(item.value as GuardChoice);
-		list.onCancel = () => done("deny");
-		container.addChild(list);
+			let cache: string[] | undefined;
 
-		container.addChild(new Text(theme.fg("dim", "↑↓ 選択 • enter 決定 • esc 拒否"), 1, 1));
-		container.addChild(new DynamicBorder(frame));
+			/** オーバーレイなので内容から幅を決め、全行を枠の内側幅に揃える */
+			function render(_width: number): string[] {
+				if (cache) return cache;
 
-		return {
-			render: (width: number) => container.render(width),
-			invalidate: () => container.invalidate(),
-			handleInput: (data: string) => {
-				list.handleInput(data);
-				tui.requestRender();
-			},
-		};
-	});
+				const body: string[] = [];
+				for (const line of subjectLines) {
+					body.push(...wrapWithPrefix("", theme.fg("muted", line), inner));
+				}
+				if (prompt.risks.length > 0) {
+					body.push("");
+					body.push(
+						...wrapWithPrefix(
+							"",
+							theme.fg("warning", `検出: ${prompt.risks.join(", ")}`),
+							inner,
+						),
+					);
+				}
+				body.push("");
+				// SelectList は自前で幅を使うので内側幅を渡す
+				body.push(...list.render(inner));
+
+				cache = frame(body, theme, {
+					innerWidth: inner,
+					color: accent,
+					title: prompt.title,
+					hint: HINT,
+				});
+				return cache;
+			}
+
+			return {
+				render,
+				invalidate: () => {
+					cache = undefined;
+					list.invalidate();
+				},
+				handleInput: (data: string) => {
+					list.handleInput(data);
+					cache = undefined;
+					tui.requestRender();
+				},
+			};
+		},
+		// 確認は必ず目に入ってほしいので中央に出す。
+		// width を枠に合わせないと箱が既定の80桁になり右側に余白が残る。
+		{
+			overlay: true,
+			overlayOptions: { anchor: "center", width: frameWidth(inner), margin: 2 },
+		},
+	);
 
 	return result ?? "deny";
 }

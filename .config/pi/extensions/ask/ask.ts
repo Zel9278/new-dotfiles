@@ -6,15 +6,8 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import {
-	Editor,
-	type EditorTheme,
-	Key,
-	matchesKey,
-	Text,
-	visibleWidth,
-	wrapTextWithAnsi,
-} from "@earendil-works/pi-tui";
+import { Editor, type EditorTheme, Key, matchesKey, Text } from "@earendil-works/pi-tui";
+import { frame, frameWidth, measureInnerWidth, wrapWithPrefix } from "../shared/dialog-frame.ts";
 import { Type } from "typebox";
 import { OptionSchema } from "./schema.ts";
 
@@ -65,6 +58,20 @@ export function registerAsk(pi: ExtensionAPI) {
 			}
 
 			const all: DisplayOption[] = [...params.options, { label: "自分で書く", isFree: true }];
+
+			const HINT_SELECT = "↑↓ 選択 • enter 決定 • esc 中止";
+			const HINT_EDIT = "enter 送信 • esc 戻る";
+
+			// 枠の幅は開いている間ずっと変えない。編集に入ってヒントが短くなっても
+			// 箱が縮むと表示が跳ねるので、長い方に合わせて先に決めておく。
+			const inner = measureInnerWidth(
+				[
+					params.question,
+					...all.map((o, i) => `  ${i + 1}. ${o.label}`),
+					...all.map((o) => (o.description ? `     ${o.description}` : "")),
+				],
+				{ min: 34, max: 72, title: "選択", hint: HINT_SELECT },
+			);
 
 			const result = await ctx.ui.custom<{ answer: string; wasCustom: boolean; index?: number } | null>(
 				(tui, theme, _kb, done) => {
@@ -138,58 +145,48 @@ export function registerAsk(pi: ExtensionAPI) {
 						}
 					}
 
-					function render(width: number): string[] {
+					/** 幅は inner で固定。全行を同じ表示幅に揃えないと枠が崩れる */
+					function render(_width: number): string[] {
 						if (cache) return cache;
-						const w = Math.max(1, width);
-						const lines: string[] = [];
 
-						const addWithPrefix = (prefix: string, text: string) => {
-							const pw = visibleWidth(prefix);
-							if (pw >= w) {
-								lines.push(...wrapTextWithAnsi(prefix + text, w));
-								return;
-							}
-							const wrapped = wrapTextWithAnsi(text, w - pw);
-							const cont = " ".repeat(pw);
-							wrapped.forEach((line, i) => lines.push(`${i === 0 ? prefix : cont}${line}`));
-						};
-
-						lines.push(theme.fg("accent", "─".repeat(w)));
-						addWithPrefix(" ", theme.fg("text", theme.bold(params.question)));
-						lines.push("");
+						const body: string[] = [];
+						body.push(...wrapWithPrefix("", theme.fg("text", theme.bold(params.question)), inner));
+						body.push("");
 
 						all.forEach((opt, i) => {
 							const selected = i === cursor;
-							const marker = selected ? theme.fg("accent", "> ") : "  ";
+							const marker = selected ? theme.fg("accent", "❯ ") : "  ";
 							const suffix = opt.isFree && editing ? " ✎" : "";
 							const color = selected || (opt.isFree && editing) ? "accent" : "text";
-							addWithPrefix(marker, theme.fg(color, `${i + 1}. ${opt.label}${suffix}`));
+							body.push(
+								...wrapWithPrefix(marker, theme.fg(color, `${i + 1}. ${opt.label}${suffix}`), inner),
+							);
 							if (opt.description) {
-								addWithPrefix("     ", theme.fg("muted", opt.description));
+								body.push(...wrapWithPrefix("     ", theme.fg("muted", opt.description), inner));
 							}
 						});
 
 						if (editing) {
-							lines.push("");
-							addWithPrefix(" ", theme.fg("muted", "自由入力:"));
-							for (const line of editor.render(Math.max(1, w - 2))) lines.push(` ${line}`);
+							body.push("");
+							// エディタは枠の内側にさらに1文字下げて置く
+							for (const line of editor.render(Math.max(1, inner - 2))) body.push(` ${line}`);
 						}
 
-						lines.push("");
-						addWithPrefix(
-							" ",
-							theme.fg(
-								"dim",
-								editing ? "enter 送信 • esc 戻る" : "↑↓ 選択 • enter 決定 • esc キャンセル",
-							),
-						);
-						lines.push(theme.fg("accent", "─".repeat(w)));
-
-						cache = lines;
-						return lines;
+						cache = frame(body, theme, {
+							innerWidth: inner,
+							color: "accent",
+							title: "選択",
+							hint: editing ? HINT_EDIT : HINT_SELECT,
+						});
+						return cache;
 					}
 
 					return { render, invalidate: () => { cache = undefined; }, handleInput };
+				},
+				// 箱の幅を枠と一致させる。指定しないと既定の80桁になり右側に余白が残る
+				{
+					overlay: true,
+					overlayOptions: { anchor: "center", width: frameWidth(inner), margin: 2 },
 				},
 			);
 
