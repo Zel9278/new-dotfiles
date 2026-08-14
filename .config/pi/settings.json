@@ -1,0 +1,5 @@
+{
+  "theme": "dark",
+  "defaultProvider": "onair",
+  "defaultModel": "Claude:Opus5"
+}

@@ -98,13 +98,104 @@ install_latest_fzf() {
   chmod +x "$HOME/.local/bin/fzf"
 }
 
+# pi coding agent, installed with pnpm. pnpm keeps global packages under
+# $PNPM_HOME, which needs no root, and .zshrc.d/00-env.zsh already puts
+# $PNPM_HOME/bin on PATH. The version is pinned so every machine gets a known
+# release. --ignore-scripts follows upstream guidance: pi needs no lifecycle
+# scripts, and skipping them avoids running third-party install hooks.
+PI_PACKAGE="@earendil-works/pi-coding-agent"
+PI_VERSION="0.84.1"
+PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+
+install_pnpm() {
+  if command -v pnpm >/dev/null 2>&1; then
+    echo "==> pnpm $(pnpm --version) is already installed."
+    return 0
+  fi
+
+  # The standalone installer needs no Node, which matters on a fresh machine
+  # where the distro package may be missing or too old.
+  if command -v curl >/dev/null 2>&1; then
+    echo "==> Installing pnpm..."
+    if curl -fsSL https://get.pnpm.io/install.sh | env PNPM_HOME="$PNPM_HOME" SHELL="${SHELL:-/bin/sh}" sh -; then
+      export PNPM_HOME
+      export PATH="$PNPM_HOME/bin:$PATH"
+      command -v pnpm >/dev/null 2>&1 && return 0
+    fi
+    echo "Warning: pnpm installer failed." >&2
+  fi
+
+  # Fall back to corepack, which ships with Node 16.9+.
+  if command -v corepack >/dev/null 2>&1; then
+    echo "==> Enabling pnpm through corepack..."
+    corepack enable pnpm >/dev/null 2>&1 && command -v pnpm >/dev/null 2>&1 && return 0
+  fi
+
+  echo "Warning: could not install pnpm; skipping pi." >&2
+  return 1
+}
+
+install_pi() {
+  local required_major=22
+  local node_major installed_version
+
+  install_pnpm || return 1
+
+  # pi declares engines.node >=22.19.0. Installing on older Node produces a
+  # binary that fails at runtime, so check before touching anything. pnpm can
+  # provide Node itself; ask for the current LTS rather than a fixed major so
+  # the runtime keeps moving with upstream support windows.
+  node_major="$(node --version 2>/dev/null | sed -n 's/^v\([0-9]*\).*/\1/p')"
+  if [[ -z $node_major ]] || ((node_major < required_major)); then
+    echo "==> Installing the current Node LTS through pnpm..."
+    if pnpm env use -g lts >/dev/null 2>&1; then
+      export PATH="$PNPM_HOME/bin:$PATH"
+      node_major="$(node --version 2>/dev/null | sed -n 's/^v\([0-9]*\).*/\1/p')"
+    fi
+  fi
+  if [[ -z $node_major ]]; then
+    echo "Warning: node not found; skipping pi." >&2
+    return 1
+  fi
+  # The LTS line can still be older than what pi needs, so verify rather than
+  # assume the install above was enough.
+  if ((node_major < required_major)); then
+    echo "Warning: pi needs Node >= $required_major (found $(node --version)); skipping." >&2
+    return 1
+  fi
+
+  installed_version="$(pi --version 2>/dev/null | sed -n 's/^v\{0,1\}\([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+  if [[ $installed_version == "$PI_VERSION" ]]; then
+    echo "==> pi $PI_VERSION is already installed."
+    return 0
+  fi
+
+  # An earlier npm-based install would shadow or be shadowed by the pnpm copy
+  # depending on PATH order, so remove it first.
+  if [[ -e $HOME/.local/lib/node_modules/$PI_PACKAGE ]]; then
+    echo "==> Removing the npm-installed pi..."
+    npm uninstall -g --prefix "$HOME/.local" "$PI_PACKAGE" >/dev/null 2>&1 || true
+  fi
+
+  echo "==> Installing pi $PI_VERSION..."
+  pnpm add -g --ignore-scripts "${PI_PACKAGE}@${PI_VERSION}" || {
+    echo "Warning: pi installation failed." >&2
+    return 1
+  }
+
+  if ! command -v pi >/dev/null 2>&1; then
+    echo "Note: add $PNPM_HOME/bin to PATH to use pi." >&2
+  fi
+}
+
+
 if command -v dnf >/dev/null 2>&1; then
   echo "==> Installing packages with dnf..."
-  as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
+  as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm
 elif command -v apt-get >/dev/null 2>&1; then
   echo "==> Installing packages with apt..."
   as_root apt-get update
-  apt_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi)
+  apt_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm)
   available_apt_packages=()
 
   for package in "${apt_packages[@]}"; do
@@ -153,7 +244,7 @@ elif command -v apt-get >/dev/null 2>&1; then
     as_root apt-get install -y "${available_apt_packages[@]}"
   fi
 elif command -v pacman >/dev/null 2>&1; then
-  arch_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd yazi)
+  arch_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd yazi nodejs npm)
   package_command=(pacman)
 
   if command -v paru >/dev/null 2>&1; then
@@ -185,5 +276,10 @@ else
   echo "Unsupported distribution: dnf, apt-get, or pacman is required." >&2
   exit 1
 fi
+
+# Installed with pnpm rather than a distro package: pi is not packaged by dnf,
+# apt, or pacman, so this runs the same way on every supported distribution.
+# pnpm is installed first when missing.
+install_pi || true
 
 echo "Done."

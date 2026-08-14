@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 categories='user environments prefs projects reference trivia paths'
 errors=0
 errors_file=$(mktemp "${TMPDIR:-/tmp}/ai-memory-errors.XXXXXX")
@@ -19,7 +19,7 @@ for category in $categories; do
       *[!a-z0-9-]*.md|.md) error "$relative: filename must be kebab-case.md" ;;
     esac
     grep -q '^---[[:space:]]*$' "$file" || error "$relative: frontmatter is missing"
-    grep -q "^type: *$category[[:space:]]*$" "$file" || error "$relative: type must be $category"
+    grep -q "^type: *${category}[[:space:]]*$" "$file" || error "$relative: type must be $category"
     grep -q '^title: *[^[:space:]].*$' "$file" || error "$relative: title is missing"
     grep -Eq '^updated: *[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]*$' "$file" || error "$relative: updated must use yyyy-mm-dd"
   done

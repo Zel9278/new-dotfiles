@@ -4,38 +4,45 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 
 ## 構成
 
+`home/` 以下はそのまま `$HOME` へ配るファイル。リポジトリルートを読みやすく保つため、実体はここにまとめている。
+
 | ファイル | 内容 |
 |---|---|
-| `.zshrc` | `.zshrc.d/*.zsh` を番号順に読み込むローダー |
-| `.zshrc.d/00-env.zsh` | 環境変数 / PATH |
-| `.zshrc.d/40-completion.zsh` | 補完の強化(メニュー選択・大文字小文字無視・色付け) |
-| `.zshrc.d/50-zinit.zsh` | zinit のブートストラップとプラグイン定義 |
-| `.zshrc.d/60-keybinds.zsh` | キーバインド(単語移動・Home/End・Ctrl+X Ctrl+E) |
-| `.zshrc.d/70-man-colors.zsh` | man ページの色付け |
-| `.zshrc.d/80-fzf.zsh` | fzf 統合(Ctrl+R / Ctrl+T / Alt+C) |
-| `.zshrc.d/90-yazi.zsh` | yazi 統合(`y` で終了時にそのディレクトリへ cd) |
-| `.zshrc.d/99-alias.zsh` | エイリアス(eza / fastfetch があればそちらを使用) |
-| `.zshrc.d/99-auto-cdls.zsh` | cd 後に自動で `ls` |
-| `.zshrc.d/99-p10k.zsh` | powerlevel10k 設定の読み込み |
-| `.zshrc.d/99-local.zsh` | `~/.zshrc.local` を読み込み(管理外のローカル設定用) |
-| `.gitconfig` | git のユーザー情報・エイリアス・便利設定 |
-| `.vimrc` | vim の最小限の見やすい設定 |
-| `.p10k.zsh` | powerlevel10k の設定(`p10k configure` で生成) |
+| `home/.zshrc` | `.zshrc.d/*.zsh` を番号順に読み込むローダー |
+| `home/.zshrc.d/00-env.zsh` | 環境変数 / PATH |
+| `home/.zshrc.d/40-completion.zsh` | 補完の強化(メニュー選択・大文字小文字無視・色付け) |
+| `home/.zshrc.d/50-zinit.zsh` | zinit のブートストラップとプラグイン定義 |
+| `home/.zshrc.d/60-keybinds.zsh` | キーバインド(単語移動・Home/End・Ctrl+X Ctrl+E) |
+| `home/.zshrc.d/70-man-colors.zsh` | man ページの色付け |
+| `home/.zshrc.d/80-fzf.zsh` | fzf 統合(Ctrl+R / Ctrl+T / Alt+C) |
+| `home/.zshrc.d/90-yazi.zsh` | yazi 統合(`y` で終了時にそのディレクトリへ cd) |
+| `home/.zshrc.d/99-alias.zsh` | エイリアス(eza / fastfetch があればそちらを使用) |
+| `home/.zshrc.d/99-auto-cdls.zsh` | cd 後に自動で `ls` |
+| `home/.zshrc.d/99-p10k.zsh` | powerlevel10k 設定の読み込み |
+| `home/.zshrc.d/99-local.zsh` | `~/.zshrc.local` を読み込み(管理外のローカル設定用) |
+| `home/.gitconfig` | git のユーザー情報・エイリアス・便利設定 |
+| `home/.vimrc` | vim の最小限の見やすい設定 |
+| `home/.p10k.zsh` | powerlevel10k の設定(`p10k configure` で生成) |
 | `.config/fastfetch/config.jsonc` | fastfetch の表示設定(`ff` コマンド) |
 | `.config/bat/config` | bat のテーマ設定 |
 | `.config/nvim/` | Neovim 設定([LazyVim](https://www.lazyvim.org/) ベース) |
 | `.config/yazi/yazi.toml` | yazi 設定(実行ファイルをターミナルで直接起動。KIOの "launching executables is not allowed" 回避) |
-| `ai-memory/` | Codex と Claude で共有する分類型の作業コンテキスト・判断メモ |
-| `AGENTS.md` / `CLAUDE.md` | AI が `ai-memory/` を参照・更新するためのリポジトリ指示 |
+| `.config/pi/` | pi coding agent の設定(`settings.json` / カスタムプロバイダの `models.json`) |
+| `ai-memory/` | Codex・Claude・pi で共有する分類型の作業コンテキスト・判断メモ |
+| `AGENTS.md` / `CLAUDE.md` / `PI.md` | AI が `ai-memory/` を参照・更新するためのリポジトリ指示 |
+| `prefs/tone.md` | AI の口調ルール(全エージェントが起動直後に読む) |
+| `prefs/privacy.md` | メモリへ保存してよい情報の境界 |
 | `asciinema` | ターミナル操作の録画・再生・共有(alias: `arec` / `aplay` / `aupload` / `astream`) |
-| `install.sh` | `$HOME` と `~/.codex` / `~/.claude` にシンボリックリンクを張る(既存ファイルはバックアップ) |
+| `install.sh` | `$HOME` と `~/.codex` / `~/.claude` / `~/.pi/agent` にシンボリックリンクを張る(既存ファイルはバックアップ) |
+| `tests/test-install.sh` | `install.sh` のパス展開・冪等性・秘密漏れの検証(GitHub Actions でも実行) |
 | `auto-install.sh` | 新規マシン用ブートストラップ(clone → install) |
 
 ## AI Memory
 
 `ai-memory/AGENTS.md` を正本にして、メモをトピック・種類ごとのMarkdownに分けて管理する。
 索引の更新と検証は、Linux/macOSでは `ai-memory/tools/*.sh`、Windowsでは `ai-memory/tools/*.ps1` を使う。
-個人メモ、生成索引、Obsidian設定はGit管理外。`install.sh` はCodexとClaude Codeのグローバル入口だけを `~/.dotfiles` へリンクする。
+個人メモ、生成索引、Obsidian設定はGit管理外。`install.sh` はCodex、Claude Code、piのグローバル入口だけを `~/.dotfiles` へリンクする。
+口調とプライバシーのルールは `prefs/tone.md` と `prefs/privacy.md` に置き、各エージェントの入口ファイルから参照する。
 
 ## プラグイン(zinit 経由で自動インストール)
 
@@ -95,10 +102,12 @@ zsh ベースの dotfiles。ベース: https://github.com/Zel9278/new-dotfiles
 
 APTではNeovimを公式GitHub Releasesの最新版として `~/.local/bin` に導入する。標準リポジトリに無い `fastfetch` / `yazi` も、対応アーキテクチャなら公式GitHub Releasesの `.deb` をダウンロードして導入する。それ以外のパッケージは警告を表示してスキップする。
 
+pi はどのディストリでもパッケージ化されていないため、pnpmで導入する(root不要)。pnpmが無い場合は公式インストーラで先に導入し、失敗時は corepack にフォールバックする。Nodeが無い/古い場合は `pnpm env use -g lts` で現在のLTSを用意する。バージョンは固定。どれも成立しない環境では警告を出してスキップし、他のパッケージの導入は続行する。
+
 Fedoraで手動実行する場合:
 
 ```sh
-sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
+sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm
 ```
 
 - **fzf**: Ctrl+R で曖昧履歴検索、Ctrl+T でファイル挿入、Alt+C でディレクトリ移動
@@ -108,6 +117,7 @@ sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 - **neovim + ripgrep + fd-find**: LazyVim 本体と検索系ツール
 - **yazi**: ターミナルファイルマネージャ(マウス対応)。`y` で起動すると終了時のディレクトリに移動できる
 - **asciinema**: ターミナル操作の録画・再生・共有(`arec` / `aplay` / `aupload` / `astream`)
+- **pi**: コーディングエージェント。pnpmで `$PNPM_HOME` へ導入(設定は `.config/pi/`)
 - **Nix**: パッケージ管理と再現可能な開発環境(`nx` / `nsh` / `nxd` / `nxb` / `nfu` / `ngc`)
 
 ## yazi の主な操作
@@ -164,9 +174,32 @@ p10k configure    # プロンプトの見た目を対話的に設定
 ```text
 ~/.codex/AGENTS.md
 ~/.claude/CLAUDE.md
+~/.pi/agent/AGENTS.md
 ```
 
 既存の実ファイルは `.bak.<日時>` に退避する。Yuki InferenceなどCodexのユーザー固有設定は、dotfilesには含めず `~/.codex/config.toml` で管理する。
+
+### pi coding agent
+
+`install.sh` は `.config/pi/settings.json` と `.config/pi/models.json` を `~/.pi/agent/` へリンクする。
+APIキーは `models.json` に環境変数名(例 `$PIPI_API_KEY`)で書き、値は `~/.zshrc.local` に置いてdotfilesには含めない。
+認証情報(`auth.json`)、モデルキャッシュ、セッションログはGit管理外。
+
+## テスト
+
+```sh
+bash tests/test-install.sh
+```
+
+使い捨ての `HOME` に向けて `install.sh` を実行し、次を検証する。実際のホームは変更しない。
+
+- テンプレートの `{{DOTPATH}}` がすべて実パスに展開されていること
+- 生成された入口が参照する絶対パスがすべて実在すること
+- 読み込み順の節に、cwd依存で壊れる裸の相対パスがないこと
+- 再実行しても `.bak` が増えないこと(冪等)
+- `models.json` のAPIキーが環境変数参照のままで、リテラルの鍵がないこと
+
+GitHub Actions(`ubuntu-latest`)ではこれに加えて shellcheck、`ai-memory` の索引検証、個人メモと認証ファイルが追加されていないかを確認する。
 
 ## Tips
 

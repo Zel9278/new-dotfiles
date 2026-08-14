@@ -1,6 +1,6 @@
 # AI Memory
 
-Codex と Claude で共有する長期メモリです。ルールの正本は [AGENTS.md](AGENTS.md) で、索引はローカルの `MEMORY-INDEX.md` に生成します。
+Codex、Claude Code、pi で共有する長期メモリです。ルールの正本は [AGENTS.md](AGENTS.md) で、索引はローカルの `MEMORY-INDEX.md` に生成します。
 
 ## 使い方
 
@@ -22,5 +22,6 @@ Codex と Claude で共有する長期メモリです。ルールの正本は [A
 | `paths/` | インストール先 |
 | `archive/` | 不要になったメモ |
 | `anarchy/` | エージェントの失敗談・改善案 |
+| `scratch/` | 作業中の下書き(長期保存しない) |
 
 個人メモと生成索引はGit管理外です。索引の更新・検証方法は [tools/README.md](tools/README.md) を参照。

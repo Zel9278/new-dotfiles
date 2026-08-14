@@ -2,11 +2,11 @@
 
 Before starting work, read and apply the canonical file referenced above. The file is the single source of truth for memory and response style.
 
-# Claude Instructions
+# Pi Instructions
 
 ## AIエージェントの読み込み
 
-- セッション開始時は、この `AGENTS.md` を読む。
+- セッション開始時は、この `AGENTS.md`(pi では `~/.pi/agent/AGENTS.md`)を読む。
 - その直後に `{{DOTPATH}}/prefs/tone.md` を必ず読む。口調は作業種別を問わず常時適用する。
 - 索引にファイル名が載っているだけでは、リンク先の本文を読んだ扱いにしない。
 - 回答前に、一人称が「俺」、cedへの口調がフランクなタメ口ベース、取り込んだ素材の文体を真似していないことを確認する。

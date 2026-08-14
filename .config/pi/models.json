@@ -1,0 +1,48 @@
+{
+  "providers": {
+    "onair": {
+      "name": "onair (self-hosted, OpenLux backend)",
+      "baseUrl": "https://onari.c30.life/v1",
+      "apiKey": "$PIPI_API_KEY",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "Claude:Opus5",
+          "name": "Claude Opus 5",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 200000,
+          "maxTokens": 32000
+        },
+        {
+          "id": "Kimi:K3",
+          "name": "Kimi K3",
+          "reasoning": true,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 256000,
+          "maxTokens": 16000
+        },
+        {
+          "id": "GPT:5.6-Sol",
+          "name": "GPT-5.6 Sol",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 272000,
+          "maxTokens": 32000
+        },
+        {
+          "id": "DeepSeek:V4-Pro",
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 128000,
+          "maxTokens": 16000
+        }
+      ]
+    }
+  }
+}
