@@ -121,11 +121,18 @@ for d in "${pi_extensions[@]}"; do
   link_entry "$src" "$HOME/.pi/agent/extensions/$d"
 
   if [[ -f "$src/package.json" ]]; then
-    if command -v npm >/dev/null 2>&1; then
+    # pnpm is the package manager these dotfiles install (see
+    # install-packages.sh); npm only exists when a distro package provides it.
+    # --node-linker=hoisted keeps the flat node_modules layout the extensions
+    # expect, since pi's loader resolves transitive requires itself.
+    if command -v pnpm >/dev/null 2>&1; then
+      echo "pnpm install: $d"
+      (cd "$src" && pnpm install --silent --node-linker=hoisted)
+    elif command -v npm >/dev/null 2>&1; then
       echo "npm install: $d"
       (cd "$src" && npm install --silent)
     else
-      echo "warning: npm not found; skipping deps for pi extension $d" >&2
+      echo "warning: no pnpm or npm found; skipping deps for pi extension $d" >&2
     fi
   fi
 done

@@ -45,3 +45,4 @@ ai-memory/scratch/**
 # Extension dependencies are installed by install.sh, not committed.
 .config/pi/extensions/*/node_modules/
 .config/pi/extensions/*/package-lock.json
+.config/pi/extensions/*/pnpm-lock.yaml
