@@ -11,6 +11,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import type { TSchema } from "typebox";
 import { McpConnection, type McpTool } from "./client.ts";
 import { loadConfig } from "./config.ts";
+import { normalizeContent } from "./content.ts";
 
 interface ConnectedServer {
 	connection: McpConnection;
@@ -128,22 +129,6 @@ export default function mcpClient(pi: ExtensionAPI) {
 	registerMcpCommand(pi, servers, () => {
 		connecting = undefined;
 	});
-}
-
-/** MCP の content ブロックを pi の content 形式に寄せる */
-function normalizeContent(blocks: Array<{ type: string; text?: string; data?: string; mimeType?: string }>) {
-	const out: Array<{ type: "text"; text: string }> = [];
-	for (const block of blocks) {
-		if (block.type === "text" && typeof block.text === "string") {
-			out.push({ type: "text", text: block.text });
-		} else if (block.type === "image") {
-			out.push({ type: "text", text: `[image ${block.mimeType ?? "unknown"}: ${block.data?.length ?? 0} bytes base64]` });
-		} else {
-			out.push({ type: "text", text: `[${block.type}]` });
-		}
-	}
-	if (out.length === 0) out.push({ type: "text", text: "(empty result)" });
-	return out;
 }
 
 function textOf(blocks: Array<{ type: string; text?: string }>): string {
