@@ -103,6 +103,12 @@ install_latest_fzf() {
 # $PNPM_HOME/bin on PATH. The version is pinned so every machine gets a known
 # release. --ignore-scripts follows upstream guidance: pi needs no lifecycle
 # scripts, and skipping them avoids running third-party install hooks.
+#
+# Node itself also comes from pnpm (`pnpm env use -g lts`) rather than a distro
+# package. Debian/Ubuntu's `npm` pulls in ~400 packages (eslint, webpack,
+# babel, tap) and its `nodejs` is 18, older than the 22 pi requires, so
+# installing it meant paying for a large dependency tree and then fetching a
+# newer Node anyway.
 PI_PACKAGE="@earendil-works/pi-coding-agent"
 PI_VERSION="0.84.1"
 PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
@@ -191,11 +197,11 @@ install_pi() {
 
 if command -v dnf >/dev/null 2>&1; then
   echo "==> Installing packages with dnf..."
-  as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm
+  as_root dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 elif command -v apt-get >/dev/null 2>&1; then
   echo "==> Installing packages with apt..."
   as_root apt-get update
-  apt_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm)
+  apt_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi)
   available_apt_packages=()
 
   for package in "${apt_packages[@]}"; do
@@ -244,7 +250,7 @@ elif command -v apt-get >/dev/null 2>&1; then
     as_root apt-get install -y "${available_apt_packages[@]}"
   fi
 elif command -v pacman >/dev/null 2>&1; then
-  arch_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd yazi nodejs npm)
+  arch_packages=(asciinema fzf eza fastfetch bat neovim ripgrep fd yazi)
   package_command=(pacman)
 
   if command -v paru >/dev/null 2>&1; then

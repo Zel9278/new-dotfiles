@@ -104,10 +104,12 @@ APTではNeovimを公式GitHub Releasesの最新版として `~/.local/bin` に�
 
 pi はどのディストリでもパッケージ化されていないため、pnpmで導入する(root不要)。pnpmが無い場合は公式インストーラで先に導入し、失敗時は corepack にフォールバックする。Nodeが無い/古い場合は `pnpm env use -g lts` で現在のLTSを用意する。バージョンは固定。どれも成立しない環境では警告を出してスキップし、他のパッケージの導入は続行する。
 
+Nodeはディストリのパッケージ(`nodejs` / `npm`)を使わず、pnpmに一本化している。Debian/Ubuntuの `npm` は eslint・webpack・babel・tap など約400パッケージを引き連れてくるうえ、`nodejs` は18でpiの要求する22に届かないため、大きな依存ツリーを入れた上で結局新しいNodeを別途取得することになっていた。
+
 Fedoraで手動実行する場合:
 
 ```sh
-sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi nodejs npm
+sudo dnf install -y asciinema fzf eza fastfetch bat neovim ripgrep fd-find yazi
 ```
 
 - **fzf**: Ctrl+R で曖昧履歴検索、Ctrl+T でファイル挿入、Alt+C でディレクトリ移動
