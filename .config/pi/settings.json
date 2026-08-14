@@ -1,5 +1,6 @@
 {
   "theme": "dark",
   "defaultProvider": "onair",
-  "defaultModel": "Claude:Opus5"
+  "defaultModel": "Claude:Opus5",
+  "lastChangelogVersion": "0.84.1"
 }
